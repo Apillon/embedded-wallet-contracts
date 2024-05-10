@@ -1,29 +1,29 @@
-# README #
+# Oasis contracts
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This repo contains smart contracts that [Oasis] use.
 
-### What is this repository for? ###
+## Development
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+> Instructions for development.
 
-### How do I get set up? ###
+### Project setup
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+Create `secrets.json` file in root folder and insert private keys used to deploy.
 
-### Contribution guidelines ###
+### Test
 
-* Writing tests
-* Code review
-* Other guidelines
+Run `npm test`.
 
-### Who do I talk to? ###
+### Build
 
-* Repo owner or admin
-* Other community or team contact
+Run `npm run build`.
+
+### Flatten
+
+Run `npm run flatten`.
+
+## Deployment
+
+> Smart contract deployment instructions.
+
+### Oasis
