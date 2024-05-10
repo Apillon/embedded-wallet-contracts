@@ -1,16 +1,11 @@
 const hre = require("hardhat");
 
-/*
-VITE_WEBAUTH_ADDR=0x9152322be84Aa52622C5Fd757DF15F5ed5965faF
-VITE_TOTP_CONTRACT=0xd7C9BB2Cb510B7096D384AD1F59006A20Fb419f7
-*/
-
 async function main() {
-  // const curveFactory = await hre.ethers.getContractFactory("SECP256R1Precompile");
-  // const curveLibrary = await curveFactory.deploy();
-  // await curveLibrary.waitForDeployment();
+  const curveFactory = await hre.ethers.getContractFactory("SECP256R1Precompile");
+  const curveLibrary = await curveFactory.deploy();
+  await curveLibrary.waitForDeployment();
 
-  const contractFactory = await hre.ethers.getContractFactory("WebAuthNExample"/*, {libraries: {SECP256R1Precompile: await curveLibrary.getAddress()}}*/);
+  const contractFactory = await hre.ethers.getContractFactory("AccountManager", {libraries: {SECP256R1Precompile: await curveLibrary.getAddress()}});
   const contract = await contractFactory.deploy({value: hre.ethers.parseEther('1.0')});
   await contract.waitForDeployment();
 
