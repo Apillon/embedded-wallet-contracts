@@ -99,7 +99,7 @@ contract AccountManager is AccountManagerStorage
      * @param in_credentialId Raw credentialId provided by WebAuthN compatible authenticator
      * @param in_pubkey Public key extracted from authenticatorData
      */
-    function internal_registerCredential(
+    function internal_addCredential(
         bytes32 in_hashedUsername,
         bytes memory in_credentialId,
         CosePublicKey memory in_pubkey
@@ -127,7 +127,7 @@ contract AccountManager is AccountManagerStorage
         usernameToHashedCredentialIdList[in_hashedUsername].push(hashedCredentialId);
     }
 
-    function internal_register(bytes32 in_hashedUsername, bytes32 in_optionalPassword)
+    function internal_createAccount(bytes32 in_hashedUsername, bytes32 in_optionalPassword)
         internal
         returns (User storage user)
     {
@@ -155,9 +155,9 @@ contract AccountManager is AccountManagerStorage
         // Don't allow duplicate account
         require( ! userExists(args.hashedUsername), "createAccount: user exists" );
 
-        internal_register(args.hashedUsername, args.optionalPassword);
+        internal_createAccount(args.hashedUsername, args.optionalPassword);
 
-        internal_registerCredential(args.hashedUsername, args.credentialId, args.pubkey);
+        internal_addCredential(args.hashedUsername, args.credentialId, args.pubkey);
     }
 
     struct RegisterCred {
@@ -184,9 +184,9 @@ contract AccountManager is AccountManagerStorage
 
         bytes32 challenge = sha256(abi.encodePacked(personalization, sha256(args.data)));
 
-        User storage user = internal_verifyECES256P256(args.credentialIdHashed, challenge, args.resp);
+        User storage user = internal_verifyCredential(args.credentialIdHashed, challenge, args.resp);
 
-        internal_registerCredential(user.username, credential.credentialId, credential.pubkey);
+        internal_addCredential(user.username, credential.credentialId, credential.pubkey);
     }
 
     function addCredentialPassword (RegisterCredPass memory args) 
@@ -201,7 +201,7 @@ contract AccountManager is AccountManagerStorage
         // Verify data
         require(keccak256(abi.encodePacked(user.password, args.data)) == args.digest);
 
-        internal_registerCredential(user.username, credential.credentialId, credential.pubkey);
+        internal_addCredential(user.username, credential.credentialId, credential.pubkey);
     }
 
     /**
@@ -253,7 +253,7 @@ contract AccountManager is AccountManagerStorage
         require( user.username == credential.username, "getCredentialAndUser" );
     }
 
-    function internal_verifyECES256P256 (
+    function internal_verifyCredential (
         bytes32 in_credentialIdHashed,
         bytes32 in_challenge,
         AuthenticatorResponse memory in_resp
@@ -270,6 +270,13 @@ contract AccountManager is AccountManagerStorage
         return user;
     }
 
+    /**
+     * Performs a proxied call to the users account
+     *
+     * @param user executor account
+     * @param in_data calldata to pass to account proxy
+     * @return out_data result from proxied view call
+     */
     function internal_proxyView(
         User storage user,
         bytes calldata in_data
@@ -287,6 +294,14 @@ contract AccountManager is AccountManagerStorage
         }
     }
 
+    /**
+     * Performs a proxied call to the verified users account
+     *
+     * @param in_hashedUsername hashedUsername
+     * @param in_digest hashed(password + in_data)
+     * @param in_data calldata to pass to account proxy
+     * @return out_data result from proxied view call
+     */
     function proxyViewPassword(
         bytes32 in_hashedUsername,
         bytes32 in_digest,
@@ -298,9 +313,7 @@ contract AccountManager is AccountManagerStorage
         User storage user = users[in_hashedUsername];
 
         require( user.username != bytes32(0) );
-
         require( user.password != bytes32(0) );
-
         require( keccak256(abi.encodePacked(user.password, in_data)) == in_digest );
 
         return internal_proxyView(user, in_data);
@@ -309,12 +322,12 @@ contract AccountManager is AccountManagerStorage
     /**
      * Performs a proxied call to the verified users account
      *
-     * @param in_credentialIdHashed .
+     * @param in_credentialIdHashed credentialIdHashed
      * @param in_resp Authenticator response
      * @param in_data calldata to pass to account proxy
      * @return out_data result from proxied view call
      */
-    function proxyViewECES256P256(
+    function proxyView(
         bytes32 in_credentialIdHashed,
         AuthenticatorResponse calldata in_resp,
         bytes calldata in_data
@@ -324,7 +337,7 @@ contract AccountManager is AccountManagerStorage
     {
         bytes32 challenge = sha256(abi.encodePacked(personalization, sha256(in_data)));
 
-        User storage user = internal_verifyECES256P256(in_credentialIdHashed, challenge, in_resp);
+        User storage user = internal_verifyCredential(in_credentialIdHashed, challenge, in_resp);
 
         return internal_proxyView(user, in_data);
     }
@@ -346,13 +359,21 @@ contract AccountManager is AccountManagerStorage
         }
     }
 
+    /**
+     * Generates a private signed transaction
+     *
+     * @param in_data calldata to execute in users behalf
+     * @param nonce nonce to be used in transaction
+     * @param gasPrice gasPrice to be used in transaction
+     * @return out_data signed transaction
+     */
     function generateGaslessTx (
         bytes calldata in_data,
         uint64 nonce,
         uint256 gasPrice
     )
         external view
-        returns (bytes memory)
+        returns (bytes memory out_data)
     {
         bytes32 cipherNonce = bytes32(Sapphire.randomBytes(32, in_data));
 

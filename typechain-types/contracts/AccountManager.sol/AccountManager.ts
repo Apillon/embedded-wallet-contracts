@@ -121,7 +121,7 @@ export interface AccountManagerInterface extends Interface {
       | "generateGaslessTx"
       | "getAccount"
       | "personalization"
-      | "proxyViewECES256P256"
+      | "proxyView"
       | "proxyViewPassword"
       | "salt"
       | "userExists"
@@ -164,7 +164,7 @@ export interface AccountManagerInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "proxyViewECES256P256",
+    functionFragment: "proxyView",
     values: [BytesLike, AuthenticatorResponseStruct, BytesLike]
   ): string;
   encodeFunctionData(
@@ -210,10 +210,7 @@ export interface AccountManagerInterface extends Interface {
     functionFragment: "personalization",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "proxyViewECES256P256",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "proxyView", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "proxyViewPassword",
     data: BytesLike
@@ -311,7 +308,7 @@ export interface AccountManager extends BaseContract {
 
   personalization: TypedContractMethod<[], [string], "view">;
 
-  proxyViewECES256P256: TypedContractMethod<
+  proxyView: TypedContractMethod<
     [
       in_credentialIdHashed: BytesLike,
       in_resp: AuthenticatorResponseStruct,
@@ -387,7 +384,7 @@ export interface AccountManager extends BaseContract {
     nameOrSignature: "personalization"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "proxyViewECES256P256"
+    nameOrSignature: "proxyView"
   ): TypedContractMethod<
     [
       in_credentialIdHashed: BytesLike,

@@ -7,7 +7,8 @@ const curve_utils = require('@noble/curves/abstract/utils');
 
 const SAPPHIRE_LOCALNET = 23293;
 const ACCOUNT_ABI = [
-  'function signEIP155((uint64 nonce,uint256 gasPrice,uint64 gasLimit,address to,uint256 value,bytes data,uint256 chainId)) view returns (bytes)'
+  'function signEIP155((uint64 nonce,uint256 gasPrice,uint64 gasLimit,address to,uint256 value,bytes data,uint256 chainId)) view returns (bytes)',
+  'function sign(bytes32 digest) view returns ((bytes32 r,bytes32 s,uint256 v))',
 ];
 
 describe("AccountManager", function() {
@@ -21,6 +22,8 @@ describe("AccountManager", function() {
 
   const SIMPLE_PASSWORD = "0x0000000000000000000000000000000000000000000000000000000000000001";
   const WRONG_PASSWORD  = "0x0000000000000000000000000000000000000000000000000000009999999999";
+
+  const RANDOM_STRING  = "0x000000000000000000000000000000000000000000000000000000000000DEAD";
 
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
@@ -36,7 +39,6 @@ describe("AccountManager", function() {
     await curveLibrary.waitForDeployment();
 
     const contractFactory = await ethers.getContractFactory("AccountManager", {libraries: {SECP256R1Precompile: await curveLibrary.getAddress()}});
-    // WA = await contractFactory.deploy({value: '1000000000000000000'}); -- for some reason sending value doesn't work
     WA = await contractFactory.deploy();
     await WA.waitForDeployment();
 
@@ -47,6 +49,30 @@ describe("AccountManager", function() {
     });
 
     SALT = ethers.toBeArray(await WA.salt());
+  });
+
+  it("Sign random string with new account", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+
+    expect(await WA.userExists(username)).to.equal(true);
+
+    const iface = new ethers.Interface(ACCOUNT_ABI);
+    const in_data = iface.encodeFunctionData('sign', [RANDOM_STRING]);
+
+    const in_digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, in_data],
+    );
+
+    const resp = await WA.proxyViewPassword(
+      username, in_digest, in_data
+    );
+
+    const [sigRes] = iface.decodeFunctionResult('sign', resp).toArray();
+
+    const recoveredAddress = ethers.recoverAddress(RANDOM_STRING, {r: sigRes[0], s: sigRes[1], v: sigRes[2]});
+    expect(recoveredAddress).to.equal(accountData.publicKey);
   });
 
   it("Register + preventing duplicates", async function() {
@@ -64,13 +90,6 @@ describe("AccountManager", function() {
     } catch(e) {
       expect(e.shortMessage).to.equal("transaction execution reverted");
     }
-
-    // Try creating another user with same credentialId
-    // try {
-    //   await createAccount(hashedUsername("anotheruser"), SIMPLE_PASSWORD, credentialId);
-    // } catch(e) {
-    //   expect(e.shortMessage).to.equal("transaction execution reverted");
-    // }
   });
 
   it("Gasless register", async function() {
@@ -540,7 +559,7 @@ describe("AccountManager", function() {
       sigS: signature.s,
     }
 
-    const resp = await WA.proxyViewECES256P256(
+    const resp = await WA.proxyView(
       credentialIdHashed, in_resp, in_data
     );
 
