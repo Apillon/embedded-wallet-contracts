@@ -6,6 +6,7 @@ export type { testOtpSol };
 export type { TestAccount } from "./TestAccount";
 export type { TestAccountTarget } from "./TestAccountTarget";
 export type { TestBase64 } from "./TestBase64";
+export type { TestHelper } from "./TestHelper";
 export type { TestJWT } from "./TestJWT";
 export type { TestMakeJSON } from "./TestMakeJSON";
 export type { TestP256R1 } from "./TestP256R1";

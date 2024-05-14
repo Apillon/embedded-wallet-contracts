@@ -9,7 +9,6 @@ import {EIP155Signer} from "@oasisprotocol/sapphire-contracts/contracts/EIP155Si
 import {Account,AccountFactory} from "./Account.sol";
 import {WebAuthN,CosePublicKey,AuthenticatorResponse} from "./lib/WebAuthN.sol";
 
-
 struct UserCredential {
     uint256[2] pubkey;
     bytes credentialId;

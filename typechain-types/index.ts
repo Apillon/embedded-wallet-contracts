@@ -46,6 +46,8 @@ export type { TestAccountTarget } from "./contracts/test/TestAccountTarget";
 export { TestAccountTarget__factory } from "./factories/contracts/test/TestAccountTarget__factory";
 export type { TestBase64 } from "./contracts/test/TestBase64";
 export { TestBase64__factory } from "./factories/contracts/test/TestBase64__factory";
+export type { TestHelper } from "./contracts/test/TestHelper";
+export { TestHelper__factory } from "./factories/contracts/test/TestHelper__factory";
 export type { TestJWT } from "./contracts/test/TestJWT";
 export { TestJWT__factory } from "./factories/contracts/test/TestJWT__factory";
 export type { TestMakeJSON } from "./contracts/test/TestMakeJSON";

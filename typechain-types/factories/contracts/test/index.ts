@@ -5,6 +5,7 @@ export * as testOtpSol from "./TestOTP.sol";
 export { TestAccount__factory } from "./TestAccount__factory";
 export { TestAccountTarget__factory } from "./TestAccountTarget__factory";
 export { TestBase64__factory } from "./TestBase64__factory";
+export { TestHelper__factory } from "./TestHelper__factory";
 export { TestJWT__factory } from "./TestJWT__factory";
 export { TestMakeJSON__factory } from "./TestMakeJSON__factory";
 export { TestP256R1__factory } from "./TestP256R1__factory";

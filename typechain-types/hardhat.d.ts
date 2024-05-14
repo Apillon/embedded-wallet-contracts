@@ -90,6 +90,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TestBase64__factory>;
     getContractFactory(
+      name: "TestHelper",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TestHelper__factory>;
+    getContractFactory(
       name: "TestJWT",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TestJWT__factory>;
@@ -222,6 +226,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.TestBase64>;
     getContractAt(
+      name: "TestHelper",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TestHelper>;
+    getContractAt(
       name: "TestJWT",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -344,6 +353,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TestBase64>;
     deployContract(
+      name: "TestHelper",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TestHelper>;
+    deployContract(
       name: "TestJWT",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TestJWT>;
@@ -475,6 +488,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TestBase64>;
+    deployContract(
+      name: "TestHelper",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TestHelper>;
     deployContract(
       name: "TestJWT",
       args: any[],

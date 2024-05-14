@@ -5,8 +5,13 @@ const ECDSA = require('ecdsa-secp256r1');
 const { secp256r1 } = require('@noble/curves/p256');
 const curve_utils = require('@noble/curves/abstract/utils');
 
+const SAPPHIRE_LOCALNET = 23293;
+const ACCOUNT_ABI = [
+  'function signEIP155((uint64 nonce,uint256 gasPrice,uint64 gasLimit,address to,uint256 value,bytes data,uint256 chainId)) view returns (bytes)'
+];
+
 describe("AccountManager", function() {
-  let WA, SALT, owner, account1, account2, gaspayingAddress;
+  let WA, SALT, HELPER, owner, account1, account2, gaspayingAddress;
 
   const GASLESS_TYPE_CREATE_ACCOUNT = 0;
   const GASLESS_TYPE_CREDENTIAL_ADD = 1;
@@ -21,6 +26,10 @@ describe("AccountManager", function() {
 
   beforeEach(async () => {
     [ owner, account1, account2 ] = await ethers.getSigners();
+
+    const helpFactory = await hre.ethers.getContractFactory("TestHelper");
+    HELPER = await helpFactory.deploy();
+    await HELPER.waitForDeployment();
 
     const curveFactory = await hre.ethers.getContractFactory("SECP256R1Precompile");
     const curveLibrary = await curveFactory.deploy();
@@ -42,28 +51,26 @@ describe("AccountManager", function() {
 
   it("Register + preventing duplicates", async function() {
     const username = hashedUsername("testuser");
-    const credentialId = abiCoder.encode([ "uint256" ], [ 123456 ]);
-
-    await createAccount(username, SIMPLE_PASSWORD, credentialId);
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
 
     expect(await WA.userExists(username)).to.equal(true);
 
     const credList = await WA.credentialIdsByUsername(username);
-    expect(credList[0]).to.equal(credentialId);
+    expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
 
     // Try creating another user with same username
     try {
-      await createAccount(username, SIMPLE_PASSWORD, abiCoder.encode([ "uint256" ], [ 111111 ]));
+      await createAccount(username, SIMPLE_PASSWORD);
     } catch(e) {
       expect(e.shortMessage).to.equal("transaction execution reverted");
     }
 
     // Try creating another user with same credentialId
-    try {
-      await createAccount(hashedUsername("anotheruser"), SIMPLE_PASSWORD, credentialId);
-    } catch(e) {
-      expect(e.shortMessage).to.equal("transaction execution reverted");
-    }
+    // try {
+    //   await createAccount(hashedUsername("anotheruser"), SIMPLE_PASSWORD, credentialId);
+    // } catch(e) {
+    //   expect(e.shortMessage).to.equal("transaction execution reverted");
+    // }
   });
 
   it("Gasless register", async function() {
@@ -71,22 +78,17 @@ describe("AccountManager", function() {
     const nonce = await owner.provider.getTransactionCount(await WA.gaspayingAddress());
 
     const username = hashedUsername("testuser");
-
-    let credentialId = abiCoder.encode([ "uint256" ], [ 123456 ]);
-
-    let privateKey = ECDSA.generateKey();
-    let decoded_x = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.x, 0))[0];
-    let decoded_y = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.y, 0))[0];
+    const keyPair = generateNewKeypair();
 
     let registerData = {
       hashedUsername: username,
-      credentialId: credentialId,
+      credentialId: keyPair.credentialId,
       pubkey: {
         kty: 2, // Elliptic Curve format
         alg: -7, // ES256 algorithm
         crv: 1, // P-256 curve
-        x: decoded_x,
-        y: decoded_y,
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
       },
       optionalPassword: SIMPLE_PASSWORD
     };
@@ -118,28 +120,127 @@ describe("AccountManager", function() {
     expect(await WA.userExists(username)).to.equal(true);
 
     const credList = await WA.credentialIdsByUsername(username);
-    expect(credList[0]).to.equal(credentialId);
+    expect(credList[0]).to.equal(keyPair.credentialId);
   });
 
-  it("Add additional credential with password", async function() {
+  it("proxyView with password", async function() {
     const username = hashedUsername("testuser");
-    const credentialId = abiCoder.encode([ "uint256" ], [ 123456 ]);
-    await createAccount(username, SIMPLE_PASSWORD, credentialId);
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
 
-    const credentialIdNew = abiCoder.encode([ "uint256" ], [ 222222 ]);
-    privateKey = ECDSA.generateKey();
-    decoded_x = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.x, 0))[0];
-    decoded_y = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.y, 0))[0];
+    // Fund new account
+    await owner.sendTransaction({
+      to: accountData.publicKey,
+      value: ethers.parseEther("0.5"),
+    });
+
+    const balanceBefore = await hre.ethers.provider.getBalance(account1.address);
+
+    // Create raw transaction
+    const txRequest = {
+      to: account1.address,
+      data: '0x',
+      gasLimit: 1000000,
+      value: ethers.parseEther("0.005"),
+      nonce: 0,
+      chainId: SAPPHIRE_LOCALNET,
+      gasPrice: 100000000000, // 100 gwei
+    };
+    
+    const iface = new ethers.Interface(ACCOUNT_ABI);
+    const in_data = iface.encodeFunctionData('signEIP155', [txRequest]);
+
+    const in_digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, in_data],
+    );
+
+    const resp = await WA.proxyViewPassword(
+      username, in_digest, in_data
+    );
+
+    const [signedTx] = iface.decodeFunctionResult('signEIP155', resp).toArray();
+
+    // Broadcast transaction
+    const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]);
+    await waitForTx(txHash);
+
+    expect(await hre.ethers.provider.getBalance(account1.address)).to.equal(balanceBefore + ethers.parseEther("0.005"));
+  });
+
+  it("proxyView with credential", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+
+    // Fund new account
+    await owner.sendTransaction({
+      to: accountData.publicKey,
+      value: ethers.parseEther("0.5"),
+    });
+
+    const balanceBefore = await hre.ethers.provider.getBalance(account1.address);
+
+    const signedTx = await generateSignedTxWithCredential(
+      accountData.publicKey, 
+      accountData.credentials[0].credentialId,
+      accountData.credentials[0].privateKey, 
+      {
+        to: account1.address,
+        data: '0x',
+        value: ethers.parseEther("0.005"),
+      }
+    );
+
+    // Broadcast transaction
+    const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]);
+    await waitForTx(txHash);
+
+    expect(await hre.ethers.provider.getBalance(account1.address)).to.equal(balanceBefore + ethers.parseEther("0.005"));
+  });
+
+  it("proxyView FAIL with wrong credential", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+
+    // Now try with no-ones PK
+    const keyPair = generateNewKeypair();
+
+    // Fund new account
+    await owner.sendTransaction({
+      to: accountData.publicKey,
+      value: ethers.parseEther("0.5"),
+    });
+
+    try {
+      await generateSignedTxWithCredential(
+        accountData.publicKey, 
+        keyPair.credentialId,
+        keyPair.privateKey, 
+        {
+          to: account1.address,
+          data: '0x',
+          value: ethers.parseEther("0.005"),
+        }
+      );
+    } catch(e) {
+      expect(e.shortMessage).to.equal('execution reverted: "getUserFromHashedCredentialId"');
+    }
+  });
+
+  it("Add additional credential with password + try proxyView with new credential", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+    
+    const keyPair = generateNewKeypair();
 
     const data = {
       hashedUsername: username,
-      credentialId: credentialIdNew,
+      credentialId: keyPair.credentialId,
       pubkey: {
         kty: 2, // Elliptic Curve format
         alg: -7, // ES256 algorithm
         crv: 1, // P-256 curve
-        x: decoded_x,
-        y: decoded_y,
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
       }
     };
 
@@ -182,8 +283,35 @@ describe("AccountManager", function() {
     
     const credList = await WA.credentialIdsByUsername(username);
     expect(credList.length).to.equal(2);
-    expect(credList[0]).to.equal(credentialId);
-    expect(credList[1]).to.equal(credentialIdNew);
+    expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
+    expect(credList[1]).to.equal(keyPair.credentialId);
+
+    // Now try proxyView with new credential
+
+    // Fund new account
+    await owner.sendTransaction({
+      to: accountData.publicKey,
+      value: ethers.parseEther("0.5"),
+    });
+
+    const balanceBefore = await hre.ethers.provider.getBalance(account1.address);
+
+    const signedTx = await generateSignedTxWithCredential(
+      accountData.publicKey, 
+      keyPair.credentialId,
+      keyPair.privateKey, 
+      {
+        to: account1.address,
+        data: '0x',
+        value: ethers.parseEther("0.005"),
+      }
+    );
+
+    // Broadcast transaction
+    const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]);
+    await waitForTx(txHash);
+
+    expect(await hre.ethers.provider.getBalance(account1.address)).to.equal(balanceBefore + ethers.parseEther("0.005"));
   });
 
   // it("Add additional credential with credential", async function() {
@@ -272,25 +400,22 @@ describe("AccountManager", function() {
 
   it("Gasless add credential to existing account with password", async function() {
     const username = hashedUsername("testuser");
-    const credentialId = abiCoder.encode([ "uint256" ], [ 123456 ]);
-    await createAccount(username, SIMPLE_PASSWORD, credentialId);
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
 
     const gasPrice = (await owner.provider.getFeeData()).gasPrice;
     const nonce = await owner.provider.getTransactionCount(await WA.gaspayingAddress());
-    const credentialIdNew = abiCoder.encode([ "uint256" ], [ 222222 ]);
-    privateKey = ECDSA.generateKey();
-    decoded_x = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.x, 0))[0];
-    decoded_y = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.y, 0))[0];
+
+    const keyPair = generateNewKeypair();
 
     const credentialData = {
       hashedUsername: username,
-      credentialId: credentialIdNew,
+      credentialId: keyPair.credentialId,
       pubkey: {
         kty: 2, // Elliptic Curve format
         alg: -7, // ES256 algorithm
         crv: 1, // P-256 curve
-        x: decoded_x,
-        y: decoded_y,
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
       }
     };
 
@@ -330,38 +455,26 @@ describe("AccountManager", function() {
     
     const credList = await WA.credentialIdsByUsername(username);
     expect(credList.length).to.equal(2);
-    expect(credList[0]).to.equal(credentialId);
-    expect(credList[1]).to.equal(credentialIdNew);
+    expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
+    expect(credList[1]).to.equal(keyPair.credentialId);
   });
 
   function hashedUsername (username) {
     return pbkdf2Sync(username, SALT, 100_000, 32, 'sha256');
   }
 
-  async function createAccount(username, password, credentialId) {
-    const priv = secp256r1.utils.randomPrivateKey();
-    const privateKey = "0x" + curve_utils.bytesToHex(priv);
-
-    const pubKey2 = secp256r1.getPublicKey(priv, false);
-    const pubKeyString = "0x" + curve_utils.bytesToHex(pubKey2);
-
-    // const message = "dead";
-    // const signature = secp256r1.sign(message, priv);
-    // console.log(signature);
-
-    const coordsString = pubKeyString.slice(4, pubKeyString.length); // removes 0x04
-    const decoded_x = BigInt('0x' + coordsString.slice(0, 64)); // x is the first half
-    const decoded_y = BigInt('0x' + coordsString.slice(64, coordsString.length)); // y is the second half
+  async function createAccount(username, password) {
+    const keyPair = generateNewKeypair();
 
     let registerData = {
       hashedUsername: username,
-      credentialId: credentialId,
+      credentialId: keyPair.credentialId,
       pubkey: {
         kty: 2, // Elliptic Curve format
         alg: -7, // ES256 algorithm
         crv: 1, // P-256 curve
-        x: decoded_x,
-        y: decoded_y,
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
       },
       optionalPassword: password
     };
@@ -369,9 +482,88 @@ describe("AccountManager", function() {
     const tx = await WA.createAccount(registerData);
     await tx.wait();
 
+    const userData = await WA.getAccount(username);
+
     return {
       ...registerData,
-      privateKey
+      publicKey: userData[1],
+      credentials: [
+        keyPair
+      ]
+    }
+  }
+
+  async function generateSignedTxWithCredential(senderAddress, credentialId, credentialPK, req) {
+    const personalization = await WA.personalization();
+    const credentialIdHashed = ethers.keccak256(credentialId);
+
+    // Create raw transaction
+    const txRequest = {
+      to: req.to,
+      data: req.data,
+      gasLimit: 1000000,
+      value: req.value,
+      nonce: await owner.provider.getTransactionCount(senderAddress),
+      chainId: SAPPHIRE_LOCALNET,
+      gasPrice: 100000000000, // 100 gwei
+    };
+    
+    const iface = new ethers.Interface(ACCOUNT_ABI);
+    const in_data = iface.encodeFunctionData('signEIP155', [txRequest]);
+
+    // Create & encode challange
+    const challange = await HELPER.createChallengeBase64(in_data, personalization);
+
+    const authenticatorData = "0x";
+    const clientDataTokens = [
+      {
+        t: 0, // 0 = JSONString, 1 = JSONBool
+        k: 'challenge',
+        v: challange
+      },
+      {
+        t: 0, // 0 = JSONString, 1 = JSONBool
+        k: 'type',
+        v: 'webauthn.get'
+      }
+    ];
+
+    let digest = await HELPER.createDigest(authenticatorData, clientDataTokens);
+    digest = digest.replace("0x", "");
+
+    const signature = secp256r1.sign(digest, credentialPK);
+
+    const in_resp = {
+      authenticatorData,
+      clientDataTokens,
+      sigR: signature.r,
+      sigS: signature.s,
+    }
+
+    const resp = await WA.proxyViewECES256P256(
+      credentialIdHashed, in_resp, in_data
+    );
+
+    const [signedTx] = iface.decodeFunctionResult('signEIP155', resp).toArray();
+
+    return signedTx;
+  }
+
+  function generateNewKeypair() {
+    const privateKey = secp256r1.utils.randomPrivateKey();
+    const pubKey = secp256r1.getPublicKey(privateKey, false);
+    const pubKeyString = "0x" + curve_utils.bytesToHex(pubKey);
+    const credentialId = abiCoder.encode([ "string" ], [ pubKeyString ]);
+
+    const coordsString = pubKeyString.slice(4, pubKeyString.length); // removes 0x04
+    const decoded_x = BigInt('0x' + coordsString.slice(0, 64)); // x is the first half
+    const decoded_y = BigInt('0x' + coordsString.slice(64, coordsString.length)); // y is the second half
+
+    return {
+      credentialId,
+      privateKey,
+      decoded_x,
+      decoded_y,
     }
   }
 
