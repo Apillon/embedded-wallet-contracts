@@ -15,10 +15,11 @@ describe("AccountManager", function() {
   let WA, SALT, HELPER, owner, account1, account2, gaspayingAddress;
 
   const GASLESS_TYPE_CREATE_ACCOUNT = 0;
-  const GASLESS_TYPE_CREDENTIAL_ADD = 1;
-  const GASLESS_TYPE_CREDENTIAL_ADD_PASSWORD = 2;
-  const GASLESS_TYPE_CREDENTIAL_REMOVE = 3;
-  const GASLESS_TYPE_CREDENTIAL_REMOVE_PASSWORD = 4;
+  const GASLESS_TYPE_MANAGE_CREDENTIAL = 1;
+  const GASLESS_TYPE_MANAGE_CREDENTIAL_PASSWORD = 2;
+
+  const CREDENTIAL_ACTION_ADD = 0;
+  const CREDENTIAL_ACTION_REMOVE = 1;
 
   const SIMPLE_PASSWORD = "0x0000000000000000000000000000000000000000000000000000000000000001";
   const WRONG_PASSWORD  = "0x0000000000000000000000000000000000000000000000000000009999999999";
@@ -241,7 +242,7 @@ describe("AccountManager", function() {
         }
       );
     } catch(e) {
-      expect(e.shortMessage).to.equal('execution reverted: "getUserFromHashedCredentialId"');
+      expect(e.shortMessage).to.equal('execution reverted: "getCredentialAndUser"');
     }
   });
 
@@ -260,11 +261,12 @@ describe("AccountManager", function() {
         crv: 1, // P-256 curve
         x: keyPair.decoded_x,
         y: keyPair.decoded_y,
-      }
+      },
+      action: CREDENTIAL_ACTION_ADD
     };
 
     const encoded_data = abiCoder.encode(
-      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey)" ], 
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
       [ data ]
     );
 
@@ -275,7 +277,7 @@ describe("AccountManager", function() {
         [WRONG_PASSWORD, encoded_data],
       );
 
-      const tx_wrong = await WA.addCredentialPassword(
+      const tx_wrong = await WA.manageCredentialPassword(
         {
           digest: digest_wrong,
           data: encoded_data
@@ -292,7 +294,7 @@ describe("AccountManager", function() {
       [SIMPLE_PASSWORD, encoded_data],
     );
 
-    const tx = await WA.addCredentialPassword(
+    const tx = await WA.manageCredentialPassword(
       {
         digest,
         data: encoded_data
@@ -435,11 +437,12 @@ describe("AccountManager", function() {
         crv: 1, // P-256 curve
         x: keyPair.decoded_x,
         y: keyPair.decoded_y,
-      }
+      },
+      action: CREDENTIAL_ACTION_ADD
     };
 
     const credentialDataEncoded = abiCoder.encode(
-      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey)" ], 
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
       [ credentialData ]
     );
 
@@ -458,7 +461,7 @@ describe("AccountManager", function() {
       [ 
         {
           funcData,
-          txType: GASLESS_TYPE_CREDENTIAL_ADD_PASSWORD
+          txType: GASLESS_TYPE_MANAGE_CREDENTIAL_PASSWORD
         } 
       ]
     ); 

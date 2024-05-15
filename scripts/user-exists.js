@@ -2,8 +2,7 @@ const hre = require("hardhat");
 const { pbkdf2Sync } = require("pbkdf2");
 
 /*
-VITE_WEBAUTH_ADDR=0x9152322be84Aa52622C5Fd757DF15F5ed5965faF
-VITE_TOTP_CONTRACT=0xd7C9BB2Cb510B7096D384AD1F59006A20Fb419f7
+VITE_WEBAUTH_ADDR=0x921E78602E8584389FacEF9cF578Ba8790bb060f
 */
 
 async function main() {

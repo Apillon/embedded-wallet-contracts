@@ -23,10 +23,13 @@ struct User {
 
 enum TxType {
     CreateAccount,
-    CredentialAdd,
-    CredentialAddPassword,
-    CredentialRemove,
-    CredentialRemovePassword
+    ManageCredential,
+    ManageCredentialPassword
+}
+
+enum CredentialAction {
+    Add,
+    Remove
 }
 
 contract AccountManagerStorage {
@@ -127,6 +130,50 @@ contract AccountManager is AccountManagerStorage
         usernameToHashedCredentialIdList[in_hashedUsername].push(hashedCredentialId);
     }
 
+    /**
+     *
+     * @param in_hashedUsername PBKDF2 hashed username
+     * @param in_credentialId Raw credentialId provided by WebAuthN compatible authenticator
+     */
+    function internal_removeCredential(
+        bytes32 in_hashedUsername,
+        bytes memory in_credentialId
+    )
+        internal
+    {
+        bytes32 hashedCredentialId = keccak256(in_credentialId);
+
+        // Credential must be associated with in_hashedUsername
+        require(
+            credentialsByHashedCredentialId[hashedCredentialId].username == in_hashedUsername,
+            "Invalid credential user"
+        );
+
+        // Remove credential from user
+        delete credentialsByHashedCredentialId[hashedCredentialId];
+
+        bytes32[] storage credentialList = usernameToHashedCredentialIdList[in_hashedUsername];
+
+        uint256 credListLength = credentialList.length;
+        uint256 credIdx = credListLength;
+        uint256 lastIdx = credListLength - 1;
+        for (uint256 i = 0; i < credListLength; i++) {
+            if (credentialList[i] == hashedCredentialId) {
+                credIdx = i;
+                break;
+            }
+        }
+
+        require(credIdx < credListLength, "credential index not found");
+
+        if (credIdx < lastIdx) {
+            // Swap last item to credIdx
+            credentialList[credIdx] = credentialList[lastIdx];
+        }
+
+        delete credentialList[lastIdx];
+    }
+
     function internal_createAccount(bytes32 in_hashedUsername, bytes32 in_optionalPassword)
         internal
         returns (User storage user)
@@ -160,13 +207,13 @@ contract AccountManager is AccountManagerStorage
         internal_addCredential(args.hashedUsername, args.credentialId, args.pubkey);
     }
 
-    struct RegisterCred {
+    struct ManageCred {
         bytes32 credentialIdHashed;
         AuthenticatorResponse resp;
         bytes data;
     }
 
-    struct RegisterCredPass {
+    struct ManageCredPass {
         bytes32 digest;
         bytes data;
     }
@@ -175,9 +222,10 @@ contract AccountManager is AccountManagerStorage
         bytes32 hashedUsername;
         bytes credentialId;
         CosePublicKey pubkey;
+        CredentialAction action;
     }
 
-    function addCredential (RegisterCred memory args) 
+    function manageCredential (ManageCred memory args) 
         public 
     {
         Credential memory credential = abi.decode(args.data, (Credential));
@@ -186,10 +234,17 @@ contract AccountManager is AccountManagerStorage
 
         User storage user = internal_verifyCredential(args.credentialIdHashed, challenge, args.resp);
 
-        internal_addCredential(user.username, credential.credentialId, credential.pubkey);
+        // Perform credential action
+        if (credential.action == CredentialAction.Add) {
+            internal_addCredential(user.username, credential.credentialId, credential.pubkey);
+        } else if (credential.action == CredentialAction.Remove) {
+            internal_removeCredential(user.username, credential.credentialId);
+        } else  {
+            revert("Unsupported operation");
+        }
     }
 
-    function addCredentialPassword (RegisterCredPass memory args) 
+    function manageCredentialPassword (ManageCredPass memory args) 
         public 
     {
         Credential memory credential = abi.decode(args.data, (Credential));
@@ -201,7 +256,14 @@ contract AccountManager is AccountManagerStorage
         // Verify data
         require(keccak256(abi.encodePacked(user.password, args.data)) == args.digest);
 
-        internal_addCredential(user.username, credential.credentialId, credential.pubkey);
+        // Perform credential action
+        if (credential.action == CredentialAction.Add) {
+            internal_addCredential(user.username, credential.credentialId, credential.pubkey);
+        } else if (credential.action == CredentialAction.Remove) {
+            internal_removeCredential(user.username, credential.credentialId);
+        } else  {
+            revert("Unsupported operation");
+        }
     }
 
     /**
@@ -228,17 +290,6 @@ contract AccountManager is AccountManagerStorage
         }
     }
 
-    function internal_getUserFromHashedCredentialId (bytes32 in_credentialIdHashed)
-        internal view
-        returns (User storage user)
-    {
-        bytes32 username = credentialsByHashedCredentialId[in_credentialIdHashed].username;
-
-        require( username != bytes32(0x0), "getUserFromHashedCredentialId" );
-
-        return users[username];
-    }
-
     function internal_getCredentialAndUser (bytes32 in_credentialIdHashed)
         internal view
         returns (
@@ -246,11 +297,10 @@ contract AccountManager is AccountManagerStorage
             UserCredential storage credential
         )
     {
-        user = internal_getUserFromHashedCredentialId(in_credentialIdHashed);
-
         credential = credentialsByHashedCredentialId[in_credentialIdHashed];
+        user = users[credential.username];
 
-        require( user.username == credential.username, "getCredentialAndUser" );
+        require(credential.username != bytes32(0x0), "getCredentialAndUser");
     }
 
     function internal_verifyCredential (
@@ -342,6 +392,12 @@ contract AccountManager is AccountManagerStorage
         return internal_proxyView(user, in_data);
     }
 
+    /**
+     * Gasless transaction resolves here
+     *
+     * @param ciphertext encrypted in_data
+     * @param nonce nonce used to decrypt
+     */
     function encryptedTx (bytes32 nonce, bytes memory ciphertext)
         external
     {
@@ -351,11 +407,14 @@ contract AccountManager is AccountManagerStorage
         if (gaslessArgs.txType == uint8(TxType.CreateAccount)) {
             createAccount(abi.decode(gaslessArgs.funcData, (NewAccount)));
 
-        } else if (gaslessArgs.txType == uint8(TxType.CredentialAdd)) {
-            addCredential(abi.decode(gaslessArgs.funcData, (RegisterCred)));
+        } else if (gaslessArgs.txType == uint8(TxType.ManageCredential)) {
+            manageCredential(abi.decode(gaslessArgs.funcData, (ManageCred)));
 
-        } else if (gaslessArgs.txType == uint8(TxType.CredentialAddPassword)) {
-            addCredentialPassword(abi.decode(gaslessArgs.funcData, (RegisterCredPass)));
+        } else if (gaslessArgs.txType == uint8(TxType.ManageCredentialPassword)) {
+            manageCredentialPassword(abi.decode(gaslessArgs.funcData, (ManageCredPass)));
+
+        } else  {
+            revert("Unsupported operation");
         }
     }
 

@@ -20,6 +20,22 @@ import type {
   TypedContractMethod,
 } from "../../common";
 
+export type CosePublicKeyStruct = {
+  kty: BigNumberish;
+  alg: BigNumberish;
+  crv: BigNumberish;
+  x: BigNumberish;
+  y: BigNumberish;
+};
+
+export type CosePublicKeyStructOutput = [
+  kty: bigint,
+  alg: bigint,
+  crv: bigint,
+  x: bigint,
+  y: bigint
+] & { kty: bigint; alg: bigint; crv: bigint; x: bigint; y: bigint };
+
 export type AuthenticatorResponseStruct = {
   authenticatorData: BytesLike;
   clientDataTokens: MakeJSON.KeyValueStruct[];
@@ -39,56 +55,7 @@ export type AuthenticatorResponseStructOutput = [
   sigS: bigint;
 };
 
-export type CosePublicKeyStruct = {
-  kty: BigNumberish;
-  alg: BigNumberish;
-  crv: BigNumberish;
-  x: BigNumberish;
-  y: BigNumberish;
-};
-
-export type CosePublicKeyStructOutput = [
-  kty: bigint,
-  alg: bigint,
-  crv: bigint,
-  x: bigint,
-  y: bigint
-] & { kty: bigint; alg: bigint; crv: bigint; x: bigint; y: bigint };
-
-export declare namespace MakeJSON {
-  export type KeyValueStruct = { t: BigNumberish; k: string; v: string };
-
-  export type KeyValueStructOutput = [t: bigint, k: string, v: string] & {
-    t: bigint;
-    k: string;
-    v: string;
-  };
-}
-
 export declare namespace AccountManager {
-  export type RegisterCredStruct = {
-    credentialIdHashed: BytesLike;
-    resp: AuthenticatorResponseStruct;
-    data: BytesLike;
-  };
-
-  export type RegisterCredStructOutput = [
-    credentialIdHashed: string,
-    resp: AuthenticatorResponseStructOutput,
-    data: string
-  ] & {
-    credentialIdHashed: string;
-    resp: AuthenticatorResponseStructOutput;
-    data: string;
-  };
-
-  export type RegisterCredPassStruct = { digest: BytesLike; data: BytesLike };
-
-  export type RegisterCredPassStructOutput = [digest: string, data: string] & {
-    digest: string;
-    data: string;
-  };
-
   export type NewAccountStruct = {
     hashedUsername: BytesLike;
     credentialId: BytesLike;
@@ -107,19 +74,52 @@ export declare namespace AccountManager {
     pubkey: CosePublicKeyStructOutput;
     optionalPassword: string;
   };
+
+  export type ManageCredStruct = {
+    credentialIdHashed: BytesLike;
+    resp: AuthenticatorResponseStruct;
+    data: BytesLike;
+  };
+
+  export type ManageCredStructOutput = [
+    credentialIdHashed: string,
+    resp: AuthenticatorResponseStructOutput,
+    data: string
+  ] & {
+    credentialIdHashed: string;
+    resp: AuthenticatorResponseStructOutput;
+    data: string;
+  };
+
+  export type ManageCredPassStruct = { digest: BytesLike; data: BytesLike };
+
+  export type ManageCredPassStructOutput = [digest: string, data: string] & {
+    digest: string;
+    data: string;
+  };
+}
+
+export declare namespace MakeJSON {
+  export type KeyValueStruct = { t: BigNumberish; k: string; v: string };
+
+  export type KeyValueStructOutput = [t: bigint, k: string, v: string] & {
+    t: bigint;
+    k: string;
+    v: string;
+  };
 }
 
 export interface AccountManagerInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "addCredential"
-      | "addCredentialPassword"
       | "createAccount"
       | "credentialIdsByUsername"
       | "encryptedTx"
       | "gaspayingAddress"
       | "generateGaslessTx"
       | "getAccount"
+      | "manageCredential"
+      | "manageCredentialPassword"
       | "personalization"
       | "proxyView"
       | "proxyViewPassword"
@@ -127,14 +127,6 @@ export interface AccountManagerInterface extends Interface {
       | "userExists"
   ): FunctionFragment;
 
-  encodeFunctionData(
-    functionFragment: "addCredential",
-    values: [AccountManager.RegisterCredStruct]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "addCredentialPassword",
-    values: [AccountManager.RegisterCredPassStruct]
-  ): string;
   encodeFunctionData(
     functionFragment: "createAccount",
     values: [AccountManager.NewAccountStruct]
@@ -160,6 +152,14 @@ export interface AccountManagerInterface extends Interface {
     values: [BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "manageCredential",
+    values: [AccountManager.ManageCredStruct]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "manageCredentialPassword",
+    values: [AccountManager.ManageCredPassStruct]
+  ): string;
+  encodeFunctionData(
     functionFragment: "personalization",
     values?: undefined
   ): string;
@@ -177,14 +177,6 @@ export interface AccountManagerInterface extends Interface {
     values: [BytesLike]
   ): string;
 
-  decodeFunctionResult(
-    functionFragment: "addCredential",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "addCredentialPassword",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "createAccount",
     data: BytesLike
@@ -206,6 +198,14 @@ export interface AccountManagerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getAccount", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "manageCredential",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "manageCredentialPassword",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "personalization",
     data: BytesLike
@@ -262,18 +262,6 @@ export interface AccountManager extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  addCredential: TypedContractMethod<
-    [args: AccountManager.RegisterCredStruct],
-    [void],
-    "nonpayable"
-  >;
-
-  addCredentialPassword: TypedContractMethod<
-    [args: AccountManager.RegisterCredPassStruct],
-    [void],
-    "nonpayable"
-  >;
-
   createAccount: TypedContractMethod<
     [args: AccountManager.NewAccountStruct],
     [void],
@@ -306,6 +294,18 @@ export interface AccountManager extends BaseContract {
     "view"
   >;
 
+  manageCredential: TypedContractMethod<
+    [args: AccountManager.ManageCredStruct],
+    [void],
+    "nonpayable"
+  >;
+
+  manageCredentialPassword: TypedContractMethod<
+    [args: AccountManager.ManageCredPassStruct],
+    [void],
+    "nonpayable"
+  >;
+
   personalization: TypedContractMethod<[], [string], "view">;
 
   proxyView: TypedContractMethod<
@@ -332,20 +332,6 @@ export interface AccountManager extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
-  getFunction(
-    nameOrSignature: "addCredential"
-  ): TypedContractMethod<
-    [args: AccountManager.RegisterCredStruct],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "addCredentialPassword"
-  ): TypedContractMethod<
-    [args: AccountManager.RegisterCredPassStruct],
-    [void],
-    "nonpayable"
-  >;
   getFunction(
     nameOrSignature: "createAccount"
   ): TypedContractMethod<
@@ -379,6 +365,20 @@ export interface AccountManager extends BaseContract {
     [in_username: BytesLike],
     [[string, string] & { account: string; keypairAddress: string }],
     "view"
+  >;
+  getFunction(
+    nameOrSignature: "manageCredential"
+  ): TypedContractMethod<
+    [args: AccountManager.ManageCredStruct],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "manageCredentialPassword"
+  ): TypedContractMethod<
+    [args: AccountManager.ManageCredPassStruct],
+    [void],
+    "nonpayable"
   >;
   getFunction(
     nameOrSignature: "personalization"

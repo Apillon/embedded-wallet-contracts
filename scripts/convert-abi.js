@@ -1,6 +1,6 @@
 async function main() {
 
-    const jsonAbi = require("../artifacts/contracts/Account.sol/Account.json").abi;
+    const jsonAbi = require("../artifacts/contracts/AccountManager.sol/AccountManager.json").abi;
   
     const iface = new ethers.Interface(jsonAbi);
     // console.log(iface);
