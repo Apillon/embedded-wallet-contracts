@@ -335,89 +335,103 @@ describe("AccountManager", function() {
     expect(await hre.ethers.provider.getBalance(account1.address)).to.equal(balanceBefore + ethers.parseEther("0.005"));
   });
 
-  // it("Add additional credential with credential", async function() {
-  //   const username = hashedUsername("testuser");
-  //   const credentialId = abiCoder.encode([ "uint256" ], [ 123456 ]);
-  //   await createAccount(username, SIMPLE_PASSWORD, credentialId);
-
-  //   const credentialIdNew = abiCoder.encode([ "uint256" ], [ 222222 ]);
-  //   privateKey = ECDSA.generateKey();
-  //   decoded_x = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.x, 0))[0];
-  //   decoded_y = abiCoder.decode(['uint256'], ethers.dataSlice(privateKey.y, 0))[0];
-
-  //   const data = {
-  //     hashedUsername: username,
-  //     credentialId: credentialIdNew,
-  //     pubkey: {
-  //       kty: 2, // Elliptic Curve format
-  //       alg: -7, // ES256 algorithm
-  //       crv: 1, // P-256 curve
-  //       x: decoded_x,
-  //       y: decoded_y,
-  //     }
-  //   };
-
-  //   const encoded_data = abiCoder.encode(
-  //     [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey)" ], 
-  //     [ data ]
-  //   );
-
-  //   const personalization = await WA.personalization();
-
-  //   const message = { text: 'hello' };
-  //   const signature = privateKey.sign(JSON.stringify(message));
-  //   console.log(signature);
-
-  //   const buffer = Buffer.from(signature, 'base64');
-  //   const bufString = '0x' + buffer.toString('hex');
+  it("Add additional credential with credential + try proxyView with new credential", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
     
-  //   console.log(bufString);
+    const keyPair = generateNewKeypair();
 
-  //   const r = bufString.slice(0, 66);
-  //   const s = '0x' + bufString.slice(66, 130);
-  //   const v = '0x' + bufString.slice(130, 132);
+    const data = {
+      hashedUsername: username,
+      credentialId: keyPair.credentialId,
+      pubkey: {
+        kty: 2, // Elliptic Curve format
+        alg: -7, // ES256 algorithm
+        crv: 1, // P-256 curve
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
+      },
+      action: CREDENTIAL_ACTION_ADD
+    };
 
-  //   console.log(r);
-  //   console.log(s);
-  //   console.log(v);
+    const encoded_data = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+      [ data ]
+    );
 
-  //   // // Try with wrong password
-  //   // try {
-  //   //   const digest_wrong = ethers.solidityPackedKeccak256(
-  //   //     ['bytes32', 'bytes'],
-  //   //     [WRONG_PASSWORD, encoded_data],
-  //   //   );
+    const personalization = await WA.personalization();
+    const credentialIdHashed = ethers.keccak256(accountData.credentials[0].credentialId);
 
-  //   //   const tx_wrong = await WA.addCredentialPassword(
-  //   //     {
-  //   //       digest: digest_wrong,
-  //   //       data: encoded_data
-  //   //     }
-  //   //   );
-  //   //   await tx_wrong.wait();
-  //   // } catch(e) {
-  //   //   expect(e.shortMessage).to.equal("transaction execution reverted");
-  //   // }
+    // Create & encode challange
+    const challange = await HELPER.createChallengeBase64(encoded_data, personalization);
 
-  //   // // Now try with correct password
-  //   // const digest = ethers.solidityPackedKeccak256(
-  //   //   ['bytes32', 'bytes'],
-  //   //   [SIMPLE_PASSWORD, encoded_data],
-  //   // );
+    const authenticatorData = "0x";
+    const clientDataTokens = [
+      {
+        t: 0, // 0 = JSONString, 1 = JSONBool
+        k: 'challenge',
+        v: challange
+      },
+      {
+        t: 0, // 0 = JSONString, 1 = JSONBool
+        k: 'type',
+        v: 'webauthn.get'
+      }
+    ];
 
-  //   // const tx = await WA.addCredentialPassword(
-  //   //   {
-  //   //     digest,
-  //   //     data: encoded_data
-  //   //   }
-  //   // );
-  //   // await tx.wait();
+    let digest = await HELPER.createDigest(authenticatorData, clientDataTokens);
+    digest = digest.replace("0x", "");
+
+    const signature = secp256r1.sign(digest, accountData.credentials[0].privateKey);
+
+    const in_resp = {
+      authenticatorData,
+      clientDataTokens,
+      sigR: signature.r,
+      sigS: signature.s,
+    }
+
+    const tx = await WA.manageCredential(
+      {
+        credentialIdHashed: credentialIdHashed,
+        resp: in_resp,
+        data: encoded_data
+      }
+    );
+    await tx.wait();
     
-  //   // const credList = await WA.credentialIdsByUsername(username);
-  //   // expect(credList.length).to.equal(2);
-  //   // expect(credList[0]).to.equal(credentialId);
-  //   // expect(credList[1]).to.equal(credentialIdNew);
-  // });
+    const credList = await WA.credentialIdsByUsername(username);
+    expect(credList.length).to.equal(2);
+    expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
+    expect(credList[1]).to.equal(keyPair.credentialId);
+
+    // Now try proxyView with new credential
+
+    // Fund new account
+    await owner.sendTransaction({
+      to: accountData.publicKey,
+      value: ethers.parseEther("0.5"),
+    });
+
+    const balanceBefore = await hre.ethers.provider.getBalance(account1.address);
+
+    const signedTx = await generateSignedTxWithCredential(
+      accountData.publicKey, 
+      keyPair.credentialId,
+      keyPair.privateKey, 
+      {
+        to: account1.address,
+        data: '0x',
+        value: ethers.parseEther("0.005"),
+      }
+    );
+
+    // Broadcast transaction
+    const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]);
+    await waitForTx(txHash);
+
+    expect(await hre.ethers.provider.getBalance(account1.address)).to.equal(balanceBefore + ethers.parseEther("0.005"));
+  });
 
   it("Gasless add credential to existing account with password", async function() {
     const username = hashedUsername("testuser");
@@ -479,6 +493,437 @@ describe("AccountManager", function() {
     expect(credList.length).to.equal(2);
     expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
     expect(credList[1]).to.equal(keyPair.credentialId);
+  });
+
+  it("Remove credential with password + try proxyView with old credential", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+    let shortMessage = '';
+    
+    const keyPair = generateNewKeypair();
+
+    const data = {
+      hashedUsername: username,
+      credentialId: keyPair.credentialId,
+      pubkey: {
+        kty: 2, // Elliptic Curve format
+        alg: -7, // ES256 algorithm
+        crv: 1, // P-256 curve
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
+      },
+      action: CREDENTIAL_ACTION_ADD
+    };
+
+    let encoded_data = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+      [ data ]
+    );
+
+    // Try with wrong password
+    try {
+      const digest_wrong = ethers.solidityPackedKeccak256(
+        ['bytes32', 'bytes'],
+        [WRONG_PASSWORD, encoded_data],
+      );
+
+      const tx_wrong = await WA.manageCredentialPassword(
+        {
+          digest: digest_wrong,
+          data: encoded_data
+        }
+      );
+      await tx_wrong.wait();
+    } catch(e) {
+      expect(e.shortMessage).to.equal("transaction execution reverted");
+    }
+
+    // Now try with correct password
+    let digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, encoded_data],
+    );
+
+    let tx = await WA.manageCredentialPassword(
+      {
+        digest,
+        data: encoded_data
+      }
+    );
+    await tx.wait();
+    
+    const credList = await WA.credentialIdsByUsername(username);
+    expect(credList.length).to.equal(2);
+    expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
+    expect(credList[1]).to.equal(keyPair.credentialId);
+
+    // Now try proxyView with new credential
+
+    // Fund new account
+    await owner.sendTransaction({
+      to: accountData.publicKey,
+      value: ethers.parseEther("0.5"),
+    });
+
+    const balanceBefore = await hre.ethers.provider.getBalance(account1.address);
+
+    const signedTx = await generateSignedTxWithCredential(
+      accountData.publicKey, 
+      keyPair.credentialId,
+      keyPair.privateKey, 
+      {
+        to: account1.address,
+        data: '0x',
+        value: ethers.parseEther("0.005"),
+      }
+    );
+
+    // Broadcast transaction
+    const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]);
+    await waitForTx(txHash);
+
+    expect(await hre.ethers.provider.getBalance(account1.address)).to.equal(balanceBefore + ethers.parseEther("0.005"));
+
+    // Remove default credential (added with registration)
+    data.credentialId = accountData.credentials[0].credentialId;
+    data.pubkey.x = accountData.credentials[0].decoded_x;
+    data.pubkey.y = accountData.credentials[0].decoded_y;
+    data.action = CREDENTIAL_ACTION_REMOVE;
+
+    encoded_data = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+      [ data ]
+    );
+
+    // Now try with correct password
+    digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, encoded_data],
+    );
+
+    const tx_remove = await WA.manageCredentialPassword(
+      {
+        digest,
+        data: encoded_data
+      }
+    );
+    await tx_remove.wait();
+
+    const credListAfterRemoval = await WA.credentialIdsByUsername(username);
+    expect(credListAfterRemoval.length).to.equal(1);
+    expect(credListAfterRemoval[0]).to.equal(keyPair.credentialId);
+
+    // Try with removed credential
+    shortMessage = '';
+    try {
+      await generateSignedTxWithCredential(
+        accountData.publicKey, 
+        accountData.credentials[0].credentialId,
+        accountData.credentials[0].privateKey, 
+        {
+          to: account1.address,
+          data: '0x',
+          value: ethers.parseEther("0.005"),
+        }
+      );
+    } catch(e) {
+      shortMessage = e.shortMessage;
+    }
+    expect(shortMessage).to.equal('execution reverted: "getCredentialAndUser"');
+
+    // Try to remove last credential
+    shortMessage = '';
+    try {
+      // Remove default credential (added with registration)
+      data.credentialId = keyPair.credentialId;
+      data.pubkey.x = keyPair.decoded_x;
+      data.pubkey.y = keyPair.decoded_y;
+
+      encoded_data = abiCoder.encode(
+        [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+        [ data ]
+      );
+
+      // Now try with correct password
+      digest = ethers.solidityPackedKeccak256(
+        ['bytes32', 'bytes'],
+        [SIMPLE_PASSWORD, encoded_data],
+      );
+
+      tx = await WA.manageCredentialPassword(
+        {
+          digest,
+          data: encoded_data
+        }
+      );
+
+      await tx.wait();
+    } catch(e) {
+      shortMessage = e.shortMessage;
+    }
+    expect(shortMessage).to.equal('transaction execution reverted');
+  });
+
+  it("Remove credential with credential + try proxyView with old credential", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+    let shortMessage = '';
+    
+    const keyPair = generateNewKeypair();
+
+    const data = {
+      hashedUsername: username,
+      credentialId: keyPair.credentialId,
+      pubkey: {
+        kty: 2, // Elliptic Curve format
+        alg: -7, // ES256 algorithm
+        crv: 1, // P-256 curve
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
+      },
+      action: CREDENTIAL_ACTION_ADD
+    };
+
+    let encoded_data = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+      [ data ]
+    );
+
+    // Try with wrong password
+    try {
+      const digest_wrong = ethers.solidityPackedKeccak256(
+        ['bytes32', 'bytes'],
+        [WRONG_PASSWORD, encoded_data],
+      );
+
+      const tx_wrong = await WA.manageCredentialPassword(
+        {
+          digest: digest_wrong,
+          data: encoded_data
+        }
+      );
+      await tx_wrong.wait();
+    } catch(e) {
+      expect(e.shortMessage).to.equal("transaction execution reverted");
+    }
+
+    // Now try with correct password
+    let digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, encoded_data],
+    );
+
+    let tx = await WA.manageCredentialPassword(
+      {
+        digest,
+        data: encoded_data
+      }
+    );
+    await tx.wait();
+    
+    const credList = await WA.credentialIdsByUsername(username);
+    expect(credList.length).to.equal(2);
+    expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
+    expect(credList[1]).to.equal(keyPair.credentialId);
+
+    // Now try proxyView with new credential
+
+    // Fund new account
+    await owner.sendTransaction({
+      to: accountData.publicKey,
+      value: ethers.parseEther("0.5"),
+    });
+
+    const balanceBefore = await hre.ethers.provider.getBalance(account1.address);
+
+    const signedTx = await generateSignedTxWithCredential(
+      accountData.publicKey, 
+      keyPair.credentialId,
+      keyPair.privateKey, 
+      {
+        to: account1.address,
+        data: '0x',
+        value: ethers.parseEther("0.005"),
+      }
+    );
+
+    // Broadcast transaction
+    const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]);
+    await waitForTx(txHash);
+
+    expect(await hre.ethers.provider.getBalance(account1.address)).to.equal(balanceBefore + ethers.parseEther("0.005"));
+
+    // Remove default credential (added with registration)
+    data.credentialId = accountData.credentials[0].credentialId;
+    data.pubkey.x = accountData.credentials[0].decoded_x;
+    data.pubkey.y = accountData.credentials[0].decoded_y;
+    data.action = CREDENTIAL_ACTION_REMOVE;
+
+    encoded_data = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+      [ data ]
+    );
+
+    const personalization = await WA.personalization();
+    const credentialIdHashed = ethers.keccak256(accountData.credentials[0].credentialId);
+
+    // Create & encode challange
+    const challange = await HELPER.createChallengeBase64(encoded_data, personalization);
+
+    const authenticatorData = "0x";
+    const clientDataTokens = [
+      {
+        t: 0, // 0 = JSONString, 1 = JSONBool
+        k: 'challenge',
+        v: challange
+      },
+      {
+        t: 0, // 0 = JSONString, 1 = JSONBool
+        k: 'type',
+        v: 'webauthn.get'
+      }
+    ];
+
+    digest = await HELPER.createDigest(authenticatorData, clientDataTokens);
+    digest = digest.replace("0x", "");
+
+    const signature = secp256r1.sign(digest, accountData.credentials[0].privateKey);
+
+    const in_resp = {
+      authenticatorData,
+      clientDataTokens,
+      sigR: signature.r,
+      sigS: signature.s,
+    }
+
+    const tx_remove = await WA.manageCredential(
+      {
+        credentialIdHashed: credentialIdHashed,
+        resp: in_resp,
+        data: encoded_data
+      }
+    );
+    await tx_remove.wait();
+
+    const credListAfterRemoval = await WA.credentialIdsByUsername(username);
+    expect(credListAfterRemoval.length).to.equal(1);
+    expect(credListAfterRemoval[0]).to.equal(keyPair.credentialId);
+
+    // Try with removed credential
+    shortMessage = '';
+    try {
+      await generateSignedTxWithCredential(
+        accountData.publicKey, 
+        accountData.credentials[0].credentialId,
+        accountData.credentials[0].privateKey, 
+        {
+          to: account1.address,
+          data: '0x',
+          value: ethers.parseEther("0.005"),
+        }
+      );
+    } catch(e) {
+      shortMessage = e.shortMessage;
+    }
+    expect(shortMessage).to.equal('execution reverted: "getCredentialAndUser"');
+  });
+
+  it("Gasless remove credential from existing account with password", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+
+    // Firstly add additional credential
+    const keyPair = generateNewKeypair();
+
+    const data = {
+      hashedUsername: username,
+      credentialId: keyPair.credentialId,
+      pubkey: {
+        kty: 2, // Elliptic Curve format
+        alg: -7, // ES256 algorithm
+        crv: 1, // P-256 curve
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
+      },
+      action: CREDENTIAL_ACTION_ADD
+    };
+
+    let encoded_data = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+      [ data ]
+    );
+
+    let digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, encoded_data],
+    );
+
+    let tx = await WA.manageCredentialPassword(
+      {
+        digest,
+        data: encoded_data
+      }
+    );
+    await tx.wait();
+    
+    let credList = await WA.credentialIdsByUsername(username);
+    expect(credList.length).to.equal(2);
+    expect(credList[0]).to.equal(accountData.credentials[0].credentialId);
+    expect(credList[1]).to.equal(keyPair.credentialId);
+
+    const gasPrice = (await owner.provider.getFeeData()).gasPrice;
+    const nonce = await owner.provider.getTransactionCount(await WA.gaspayingAddress());
+
+    const credentialData = {
+      hashedUsername: username,
+      credentialId: accountData.credentials[0].credentialId,
+      pubkey: {
+        kty: 2, // Elliptic Curve format
+        alg: -7, // ES256 algorithm
+        crv: 1, // P-256 curve
+        x: accountData.credentials[0].decoded_x,
+        y: accountData.credentials[0].decoded_y,
+      },
+      action: CREDENTIAL_ACTION_REMOVE
+    };
+
+    const credentialDataEncoded = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, uint8 action)" ], 
+      [ credentialData ]
+    );
+
+    digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, credentialDataEncoded],
+    );
+
+    const funcData = abiCoder.encode(
+      [ "tuple(bytes32 digest, bytes data)" ], 
+      [ { digest, data: credentialDataEncoded } ]
+    );
+
+    let gaslessData = abiCoder.encode(
+      [ "tuple(bytes funcData, uint8 txType)" ], 
+      [ 
+        {
+          funcData,
+          txType: GASLESS_TYPE_MANAGE_CREDENTIAL_PASSWORD
+        } 
+      ]
+    ); 
+
+    const signedTx = await WA.generateGaslessTx(
+      gaslessData,
+      nonce,
+      gasPrice,
+    );
+
+    const txHash = await owner.provider.send('eth_sendRawTransaction', [signedTx]);
+    await waitForTx(txHash);
+    
+    credList = await WA.credentialIdsByUsername(username);
+    expect(credList.length).to.equal(1);
+    expect(credList[0]).to.equal(keyPair.credentialId);
   });
 
   function hashedUsername (username) {

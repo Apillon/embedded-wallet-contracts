@@ -143,6 +143,11 @@ contract AccountManager is AccountManagerStorage
     {
         bytes32 hashedCredentialId = keccak256(in_credentialId);
 
+        require(
+            usernameToHashedCredentialIdList[in_hashedUsername].length > 1, 
+            "Cannot remove all credentials"
+        );
+
         // Credential must be associated with in_hashedUsername
         require(
             credentialsByHashedCredentialId[hashedCredentialId].username == in_hashedUsername,
@@ -171,7 +176,7 @@ contract AccountManager is AccountManagerStorage
             credentialList[credIdx] = credentialList[lastIdx];
         }
 
-        delete credentialList[lastIdx];
+        credentialList.pop();
     }
 
     function internal_createAccount(bytes32 in_hashedUsername, bytes32 in_optionalPassword)

@@ -1,10 +1,9 @@
 async function main() {
 
-    const jsonAbi = require("../artifacts/contracts/AccountManager.sol/AccountManager.json").abi;
+    const jsonAbi = require("../artifacts/contracts/Account.sol/Account.json").abi;
   
     const iface = new ethers.Interface(jsonAbi);
-    // console.log(iface);
-    console.log(iface.format("full").slice(0));
+    console.log(iface.format(""));
 
     // const contract = await ethers.getContractFactory("Account");
     // console.log(JSON.stringify(contract.interface.fragments));
