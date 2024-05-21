@@ -8,6 +8,7 @@ import type {
   Result,
   Interface,
   EventFragment,
+  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -19,53 +20,42 @@ import type {
   TypedLogDescription,
   TypedListener,
   TypedContractMethod,
-} from "../../common";
+} from "../../../common";
 
-export interface AccountManagerStorageInterface extends Interface {
+export interface OwnableInterface extends Interface {
   getFunction(
-    nameOrSignature:
-      | "devAddress"
-      | "gaspayingAddress"
-      | "personalization"
-      | "salt"
-      | "signer"
+    nameOrSignature: "owner" | "renounceOwnership" | "transferOwnership"
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "GaslessTransaction"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
 
+  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "devAddress",
+    functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "gaspayingAddress",
-    values?: undefined
+    functionFragment: "transferOwnership",
+    values: [AddressLike]
   ): string;
-  encodeFunctionData(
-    functionFragment: "personalization",
-    values?: undefined
-  ): string;
-  encodeFunctionData(functionFragment: "salt", values?: undefined): string;
-  encodeFunctionData(functionFragment: "signer", values?: undefined): string;
 
-  decodeFunctionResult(functionFragment: "devAddress", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "gaspayingAddress",
+    functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "personalization",
+    functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "salt", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "signer", data: BytesLike): Result;
 }
 
-export namespace GaslessTransactionEvent {
-  export type InputTuple = [dataHash: BytesLike];
-  export type OutputTuple = [dataHash: string];
+export namespace OwnershipTransferredEvent {
+  export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
+  export type OutputTuple = [previousOwner: string, newOwner: string];
   export interface OutputObject {
-    dataHash: string;
+    previousOwner: string;
+    newOwner: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -73,11 +63,11 @@ export namespace GaslessTransactionEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface AccountManagerStorage extends BaseContract {
-  connect(runner?: ContractRunner | null): AccountManagerStorage;
+export interface Ownable extends BaseContract {
+  connect(runner?: ContractRunner | null): Ownable;
   waitForDeployment(): Promise<this>;
 
-  interface: AccountManagerStorageInterface;
+  interface: OwnableInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -116,52 +106,48 @@ export interface AccountManagerStorage extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  devAddress: TypedContractMethod<[], [string], "view">;
+  owner: TypedContractMethod<[], [string], "view">;
 
-  gaspayingAddress: TypedContractMethod<[], [string], "view">;
+  renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
-  personalization: TypedContractMethod<[], [string], "view">;
-
-  salt: TypedContractMethod<[], [string], "view">;
+  transferOwnership: TypedContractMethod<
+    [newOwner: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
   getFunction(
-    nameOrSignature: "devAddress"
+    nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "gaspayingAddress"
-  ): TypedContractMethod<[], [string], "view">;
+    nameOrSignature: "renounceOwnership"
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "personalization"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "salt"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "signer"
-  ): TypedContractMethod<[], [string], "view">;
+    nameOrSignature: "transferOwnership"
+  ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
 
   getEvent(
-    key: "GaslessTransaction"
+    key: "OwnershipTransferred"
   ): TypedContractEvent<
-    GaslessTransactionEvent.InputTuple,
-    GaslessTransactionEvent.OutputTuple,
-    GaslessTransactionEvent.OutputObject
+    OwnershipTransferredEvent.InputTuple,
+    OwnershipTransferredEvent.OutputTuple,
+    OwnershipTransferredEvent.OutputObject
   >;
 
   filters: {
-    "GaslessTransaction(bytes32)": TypedContractEvent<
-      GaslessTransactionEvent.InputTuple,
-      GaslessTransactionEvent.OutputTuple,
-      GaslessTransactionEvent.OutputObject
+    "OwnershipTransferred(address,address)": TypedContractEvent<
+      OwnershipTransferredEvent.InputTuple,
+      OwnershipTransferredEvent.OutputTuple,
+      OwnershipTransferredEvent.OutputObject
     >;
-    GaslessTransaction: TypedContractEvent<
-      GaslessTransactionEvent.InputTuple,
-      GaslessTransactionEvent.OutputTuple,
-      GaslessTransactionEvent.OutputObject
+    OwnershipTransferred: TypedContractEvent<
+      OwnershipTransferredEvent.InputTuple,
+      OwnershipTransferredEvent.OutputTuple,
+      OwnershipTransferredEvent.OutputObject
     >;
   };
 }

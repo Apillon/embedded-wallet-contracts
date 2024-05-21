@@ -13,7 +13,7 @@ const ACCOUNT_ABI = [
 ];
 
 describe("AccountManager", function() {
-  let WA, SALT, HELPER, owner, account1, account2, gaspayingAddress;
+  let WA, SALT, HELPER, owner, account1, account2, signer, gaspayingAddress;
 
   const GASLESS_TYPE_CREATE_ACCOUNT = 0;
   const GASLESS_TYPE_MANAGE_CREDENTIAL = 1;
@@ -30,7 +30,7 @@ describe("AccountManager", function() {
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
   beforeEach(async () => {
-    [ owner, account1, account2 ] = await ethers.getSigners();
+    [ owner, account1, account2, signer ] = await ethers.getSigners();
 
     const helpFactory = await hre.ethers.getContractFactory("TestHelper");
     HELPER = await helpFactory.deploy();
@@ -41,7 +41,7 @@ describe("AccountManager", function() {
     await curveLibrary.waitForDeployment();
 
     const contractFactory = await ethers.getContractFactory("AccountManager", {libraries: {SECP256R1Precompile: await curveLibrary.getAddress()}});
-    WA = await contractFactory.deploy();
+    WA = await contractFactory.deploy(signer.address);
     await WA.waitForDeployment();
 
     gaspayingAddress = await WA.gaspayingAddress();
@@ -94,6 +94,60 @@ describe("AccountManager", function() {
     }
   });
 
+  it("Verify gasless signature", async function() {
+    const gasPrice = (await owner.provider.getFeeData()).gasPrice;
+
+    const username = hashedUsername("testuser");
+    const keyPair = generateNewKeypair();
+
+    let registerData = {
+      hashedUsername: username,
+      credentialId: keyPair.credentialId,
+      pubkey: {
+        kty: 2, // Elliptic Curve format
+        alg: -7, // ES256 algorithm
+        crv: 1, // P-256 curve
+        x: keyPair.decoded_x,
+        y: keyPair.decoded_y,
+      },
+      optionalPassword: SIMPLE_PASSWORD
+    };
+
+    let funcData = abiCoder.encode(
+      [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, bytes32 optionalPassword)" ], 
+      [ registerData ]
+    ); 
+
+    let gaslessData = abiCoder.encode(
+      [ "tuple(bytes funcData, uint8 txType)" ], 
+      [ 
+        {
+          funcData,
+          txType: GASLESS_TYPE_CREATE_ACCOUNT
+        } 
+      ]
+    ); 
+
+    const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
+
+    const dataHash = ethers.solidityPackedKeccak256(
+      ['uint256', 'uint256', 'bytes32'],
+      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+    );
+    
+    const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
+    const resp = await WA.validateSignature(
+      gasPrice,
+      timestamp,
+      ethers.keccak256(gaslessData),
+      signature
+    );
+
+    expect(resp[0]).to.equal(dataHash);
+    expect(resp[1]).to.equal(true);
+  });
+
   it("Gasless register", async function() {
     const gasPrice = (await owner.provider.getFeeData()).gasPrice;
     const nonce = await owner.provider.getTransactionCount(await WA.gaspayingAddress());
@@ -129,10 +183,19 @@ describe("AccountManager", function() {
       ]
     ); 
 
+    const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
+    const dataHash = ethers.solidityPackedKeccak256(
+      ['uint256', 'uint256', 'bytes32'],
+      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+    );
+    const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
     const signedTx = await WA.generateGaslessTx(
       gaslessData,
       nonce,
       gasPrice,
+      timestamp,
+      signature
     );
 
     const txHash = await owner.provider.send('eth_sendRawTransaction', [signedTx]);
@@ -503,10 +566,19 @@ describe("AccountManager", function() {
       ]
     ); 
 
+    const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
+    const dataHash = ethers.solidityPackedKeccak256(
+      ['uint256', 'uint256', 'bytes32'],
+      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+    );
+    const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
     const signedTx = await WA.generateGaslessTx(
       gaslessData,
       nonce,
       gasPrice,
+      timestamp,
+      signature
     );
 
     const txHash = await owner.provider.send('eth_sendRawTransaction', [signedTx]);
@@ -935,10 +1007,19 @@ describe("AccountManager", function() {
       ]
     ); 
 
+    const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
+    const dataHash = ethers.solidityPackedKeccak256(
+      ['uint256', 'uint256', 'bytes32'],
+      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+    );
+    const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
     const signedTx = await WA.generateGaslessTx(
       gaslessData,
       nonce,
       gasPrice,
+      timestamp,
+      signature
     );
 
     const txHash = await owner.provider.send('eth_sendRawTransaction', [signedTx]);

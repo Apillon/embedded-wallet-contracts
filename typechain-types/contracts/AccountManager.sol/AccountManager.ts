@@ -8,6 +8,8 @@ import type {
   FunctionFragment,
   Result,
   Interface,
+  EventFragment,
+  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -16,6 +18,7 @@ import type {
   TypedContractEvent,
   TypedDeferredTopicFilter,
   TypedEventLog,
+  TypedLogDescription,
   TypedListener,
   TypedContractMethod,
 } from "../../common";
@@ -114,6 +117,7 @@ export interface AccountManagerInterface extends Interface {
     nameOrSignature:
       | "createAccount"
       | "credentialIdsByUsername"
+      | "devAddress"
       | "encryptedTx"
       | "gaspayingAddress"
       | "generateGaslessTx"
@@ -124,8 +128,13 @@ export interface AccountManagerInterface extends Interface {
       | "proxyView"
       | "proxyViewPassword"
       | "salt"
+      | "setSigner"
+      | "signer"
       | "userExists"
+      | "validateSignature"
   ): FunctionFragment;
+
+  getEvent(nameOrSignatureOrTopic: "GaslessTransaction"): EventFragment;
 
   encodeFunctionData(
     functionFragment: "createAccount",
@@ -136,8 +145,12 @@ export interface AccountManagerInterface extends Interface {
     values: [BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "devAddress",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "encryptedTx",
-    values: [BytesLike, BytesLike]
+    values: [BytesLike, BytesLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "gaspayingAddress",
@@ -145,7 +158,7 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "generateGaslessTx",
-    values: [BytesLike, BigNumberish, BigNumberish]
+    values: [BytesLike, BigNumberish, BigNumberish, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getAccount",
@@ -173,8 +186,17 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "salt", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "setSigner",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(functionFragment: "signer", values?: undefined): string;
+  encodeFunctionData(
     functionFragment: "userExists",
     values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "validateSignature",
+    values: [BigNumberish, BigNumberish, BytesLike, BytesLike]
   ): string;
 
   decodeFunctionResult(
@@ -185,6 +207,7 @@ export interface AccountManagerInterface extends Interface {
     functionFragment: "credentialIdsByUsername",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "devAddress", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "encryptedTx",
     data: BytesLike
@@ -216,7 +239,25 @@ export interface AccountManagerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "salt", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "setSigner", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "signer", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "userExists", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "validateSignature",
+    data: BytesLike
+  ): Result;
+}
+
+export namespace GaslessTransactionEvent {
+  export type InputTuple = [dataHash: BytesLike];
+  export type OutputTuple = [dataHash: string];
+  export interface OutputObject {
+    dataHash: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export interface AccountManager extends BaseContract {
@@ -274,8 +315,10 @@ export interface AccountManager extends BaseContract {
     "view"
   >;
 
+  devAddress: TypedContractMethod<[], [string], "view">;
+
   encryptedTx: TypedContractMethod<
-    [nonce: BytesLike, ciphertext: BytesLike],
+    [nonce: BytesLike, ciphertext: BytesLike, timestamp: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -283,7 +326,13 @@ export interface AccountManager extends BaseContract {
   gaspayingAddress: TypedContractMethod<[], [string], "view">;
 
   generateGaslessTx: TypedContractMethod<
-    [in_data: BytesLike, nonce: BigNumberish, gasPrice: BigNumberish],
+    [
+      in_data: BytesLike,
+      nonce: BigNumberish,
+      gasPrice: BigNumberish,
+      timestamp: BigNumberish,
+      signature: BytesLike
+    ],
     [string],
     "view"
   >;
@@ -326,7 +375,20 @@ export interface AccountManager extends BaseContract {
 
   salt: TypedContractMethod<[], [string], "view">;
 
+  setSigner: TypedContractMethod<[_signer: AddressLike], [void], "nonpayable">;
+
   userExists: TypedContractMethod<[in_username: BytesLike], [boolean], "view">;
+
+  validateSignature: TypedContractMethod<
+    [
+      _gasPrice: BigNumberish,
+      _timestamp: BigNumberish,
+      _dataKeccak: BytesLike,
+      _signature: BytesLike
+    ],
+    [[string, boolean]],
+    "view"
+  >;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -343,9 +405,12 @@ export interface AccountManager extends BaseContract {
     nameOrSignature: "credentialIdsByUsername"
   ): TypedContractMethod<[in_hashedUsername: BytesLike], [string[]], "view">;
   getFunction(
+    nameOrSignature: "devAddress"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "encryptedTx"
   ): TypedContractMethod<
-    [nonce: BytesLike, ciphertext: BytesLike],
+    [nonce: BytesLike, ciphertext: BytesLike, timestamp: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -355,7 +420,13 @@ export interface AccountManager extends BaseContract {
   getFunction(
     nameOrSignature: "generateGaslessTx"
   ): TypedContractMethod<
-    [in_data: BytesLike, nonce: BigNumberish, gasPrice: BigNumberish],
+    [
+      in_data: BytesLike,
+      nonce: BigNumberish,
+      gasPrice: BigNumberish,
+      timestamp: BigNumberish,
+      signature: BytesLike
+    ],
     [string],
     "view"
   >;
@@ -405,8 +476,45 @@ export interface AccountManager extends BaseContract {
     nameOrSignature: "salt"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "setSigner"
+  ): TypedContractMethod<[_signer: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "signer"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "userExists"
   ): TypedContractMethod<[in_username: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "validateSignature"
+  ): TypedContractMethod<
+    [
+      _gasPrice: BigNumberish,
+      _timestamp: BigNumberish,
+      _dataKeccak: BytesLike,
+      _signature: BytesLike
+    ],
+    [[string, boolean]],
+    "view"
+  >;
 
-  filters: {};
+  getEvent(
+    key: "GaslessTransaction"
+  ): TypedContractEvent<
+    GaslessTransactionEvent.InputTuple,
+    GaslessTransactionEvent.OutputTuple,
+    GaslessTransactionEvent.OutputObject
+  >;
+
+  filters: {
+    "GaslessTransaction(bytes32)": TypedContractEvent<
+      GaslessTransactionEvent.InputTuple,
+      GaslessTransactionEvent.OutputTuple,
+      GaslessTransactionEvent.OutputObject
+    >;
+    GaslessTransaction: TypedContractEvent<
+      GaslessTransactionEvent.InputTuple,
+      GaslessTransactionEvent.OutputTuple,
+      GaslessTransactionEvent.OutputObject
+    >;
+  };
 }

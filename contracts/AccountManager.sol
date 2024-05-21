@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
 import {Sapphire} from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 import {EthereumUtils} from "@oasisprotocol/sapphire-contracts/contracts/EthereumUtils.sol";
 import {EIP155Signer} from "@oasisprotocol/sapphire-contracts/contracts/EIP155Signer.sol";
@@ -51,14 +55,29 @@ contract AccountManagerStorage {
     bytes32 internal gaspayingSecret;
 
     bytes32 public personalization;
+
+    /**
+     * @dev address signing on backend (for gasless transactions)
+     */
+    address public signer;
+
+    address public devAddress;
+
+    event GaslessTransaction(bytes32 dataHash);
+
 }
 
 
 contract AccountManager is AccountManagerStorage
 {
-    constructor ()
+    constructor (address _signer)
         payable
     {
+        devAddress = msg.sender;
+
+        require(_signer != address(0), "Zero address not allowed");
+        signer = _signer;
+
         salt = bytes32(Sapphire.randomBytes(32, abi.encodePacked(address(this))));
 
         encryptionSecret = bytes32(Sapphire.randomBytes(32, abi.encodePacked(address(this))));
@@ -403,9 +422,14 @@ contract AccountManager is AccountManagerStorage
      * @param ciphertext encrypted in_data
      * @param nonce nonce used to decrypt
      */
-    function encryptedTx (bytes32 nonce, bytes memory ciphertext)
-        external
-    {
+    function encryptedTx (
+        bytes32 nonce, 
+        bytes memory ciphertext, 
+        uint256 timestamp
+    ) external {
+        require(msg.sender == gaspayingAddress, "Only gaspayingAddress");
+        require(timestamp >= block.timestamp, "Expired signature");
+
         bytes memory plaintext = Sapphire.decrypt(encryptionSecret, nonce, ciphertext, abi.encodePacked(address(this)));
         GaslessData memory gaslessArgs = abi.decode(plaintext, (GaslessData));
 
@@ -421,6 +445,8 @@ contract AccountManager is AccountManagerStorage
         } else  {
             revert("Unsupported operation");
         }
+
+        // emit GaslessTransaction
     }
 
     /**
@@ -429,16 +455,32 @@ contract AccountManager is AccountManagerStorage
      * @param in_data calldata to execute in users behalf
      * @param nonce nonce to be used in transaction
      * @param gasPrice gasPrice to be used in transaction
+     * @param timestamp signature expiration
+     * @param signature signature for the above sensitive data
      * @return out_data signed transaction
      */
     function generateGaslessTx (
         bytes calldata in_data,
         uint64 nonce,
-        uint256 gasPrice
+        uint256 gasPrice,
+        uint256 timestamp,
+        bytes memory signature
     )
         external view
         returns (bytes memory out_data)
     {
+        require(timestamp >= block.timestamp, "Expired signature");
+
+        // Verify signature
+        (bytes32 dataHash, bool isValid) = validateSignature(
+            gasPrice,
+            timestamp,
+            keccak256(in_data),
+            signature
+        );
+
+        require(isValid, "Invalid signature");
+
         bytes32 cipherNonce = bytes32(Sapphire.randomBytes(32, in_data));
 
         bytes memory cipherPersonalization = abi.encodePacked(address(this));
@@ -457,11 +499,35 @@ contract AccountManager is AccountManagerStorage
             value: 0,
             data: abi.encodeCall(
                 this.encryptedTx,
-                (cipherNonce, cipherBytes)
+                (cipherNonce, cipherBytes, timestamp)
             ),
             chainId: block.chainid
         });
 
         return EIP155Signer.sign(gaspayingAddress, gaspayingSecret, gaslessTx);
+    }
+
+    /*
+     * @dev Set signer address.
+     * @param _signer Signer address
+     */
+    function setSigner(address _signer) external {
+        require(msg.sender == devAddress, "Unauthorized");
+        require(_signer != address(0), "Zero address not allowed");
+        signer = _signer;
+    }
+
+    function validateSignature(
+        uint256 _gasPrice,
+        uint256 _timestamp,
+        bytes32 _dataKeccak,
+        bytes memory _signature
+    ) public view returns (bytes32, bool) {
+        bytes32 dataHash = keccak256(
+            abi.encodePacked(_gasPrice, _timestamp, _dataKeccak)
+        );
+        bytes32 message = MessageHashUtils.toEthSignedMessageHash(dataHash);
+        address receivedAddress = ECDSA.recover(message, _signature);
+        return (dataHash, receivedAddress == signer);
     }
 }
