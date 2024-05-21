@@ -4,6 +4,7 @@ const { pbkdf2Sync } = require("pbkdf2");
 const ECDSA = require('ecdsa-secp256r1');
 const { secp256r1 } = require('@noble/curves/p256');
 const curve_utils = require('@noble/curves/abstract/utils');
+const { UniversalString } = require("asn1js");
 
 const SAPPHIRE_LOCALNET = 23293;
 const ACCOUNT_ABI = [
@@ -221,6 +222,9 @@ describe("AccountManager", function() {
     const username = hashedUsername("testuser");
     const accountData = await createAccount(username, SIMPLE_PASSWORD);
 
+    const usernameHacker = hashedUsername("hacker");
+    const accountDataHacker = await createAccount(usernameHacker, SIMPLE_PASSWORD);
+
     // Now try with no-ones PK
     const keyPair = generateNewKeypair();
 
@@ -230,6 +234,7 @@ describe("AccountManager", function() {
       value: ethers.parseEther("0.5"),
     });
 
+    let shortMessage = "";
     try {
       await generateSignedTxWithCredential(
         accountData.publicKey, 
@@ -242,8 +247,26 @@ describe("AccountManager", function() {
         }
       );
     } catch(e) {
-      expect(e.shortMessage).to.equal('execution reverted: "getCredentialAndUser"');
+      shortMessage = e.shortMessage;
     }
+    expect(shortMessage).to.equal('execution reverted: "getCredentialAndUser"');
+
+    shortMessage = "";
+    try {
+      await generateSignedTxWithCredential(
+        accountData.publicKey, 
+        accountData.credentials[0].credentialId,
+        accountDataHacker.credentials[0].privateKey, 
+        {
+          to: account1.address,
+          data: '0x',
+          value: ethers.parseEther("0.005"),
+        }
+      );
+    } catch(e) {
+      shortMessage = e.shortMessage;
+    }
+    expect(shortMessage).to.equal('execution reverted: "getCredentialAndUser"');
   });
 
   it("Add additional credential with password + try proxyView with new credential", async function() {
