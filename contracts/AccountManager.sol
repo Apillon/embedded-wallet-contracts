@@ -425,7 +425,8 @@ contract AccountManager is AccountManagerStorage
     function encryptedTx (
         bytes32 nonce, 
         bytes memory ciphertext, 
-        uint256 timestamp
+        uint256 timestamp,
+        bytes32 dataHash
     ) external {
         require(msg.sender == gaspayingAddress, "Only gaspayingAddress");
         require(timestamp >= block.timestamp, "Expired signature");
@@ -446,7 +447,7 @@ contract AccountManager is AccountManagerStorage
             revert("Unsupported operation");
         }
 
-        // emit GaslessTransaction
+        emit GaslessTransaction(dataHash);
     }
 
     /**
@@ -499,7 +500,7 @@ contract AccountManager is AccountManagerStorage
             value: 0,
             data: abi.encodeCall(
                 this.encryptedTx,
-                (cipherNonce, cipherBytes, timestamp)
+                (cipherNonce, cipherBytes, timestamp, dataHash)
             ),
             chainId: block.chainid
         });

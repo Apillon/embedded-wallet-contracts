@@ -6,7 +6,7 @@ async function main() {
   await curveLibrary.waitForDeployment();
 
   const contractFactory = await hre.ethers.getContractFactory("AccountManager", {libraries: {SECP256R1Precompile: await curveLibrary.getAddress()}});
-  const contract = await contractFactory.deploy({value: hre.ethers.parseEther('0.3')});
+  const contract = await contractFactory.deploy('0x5f2B7077a7e5B4fdD97cBb56D9aD02a4f326896d', {value: hre.ethers.parseEther('0.3')});
   await contract.waitForDeployment();
 
   // const sha1Factory = await hre.ethers.getContractFactory("SHA1");

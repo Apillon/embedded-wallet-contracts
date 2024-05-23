@@ -150,7 +150,7 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "encryptedTx",
-    values: [BytesLike, BytesLike, BigNumberish]
+    values: [BytesLike, BytesLike, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "gaspayingAddress",
@@ -318,7 +318,12 @@ export interface AccountManager extends BaseContract {
   devAddress: TypedContractMethod<[], [string], "view">;
 
   encryptedTx: TypedContractMethod<
-    [nonce: BytesLike, ciphertext: BytesLike, timestamp: BigNumberish],
+    [
+      nonce: BytesLike,
+      ciphertext: BytesLike,
+      timestamp: BigNumberish,
+      dataHash: BytesLike
+    ],
     [void],
     "nonpayable"
   >;
@@ -410,7 +415,12 @@ export interface AccountManager extends BaseContract {
   getFunction(
     nameOrSignature: "encryptedTx"
   ): TypedContractMethod<
-    [nonce: BytesLike, ciphertext: BytesLike, timestamp: BigNumberish],
+    [
+      nonce: BytesLike,
+      ciphertext: BytesLike,
+      timestamp: BigNumberish,
+      dataHash: BytesLike
+    ],
     [void],
     "nonpayable"
   >;

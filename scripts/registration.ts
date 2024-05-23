@@ -1,63 +1,82 @@
-// const hre = require("hardhat");
-// const { pbkdf2Sync } = require("pbkdf2");
-// const { credentialCreate } = require("./lib/webauthn.ts");
-
+import { ethers } from "ethers";
 import hre from "hardhat";
 import { pbkdf2Sync } from "pbkdf2"
-// import { credentialCreate, credentialGet } from "./lib/webauthn.ts";
-// import { getRandomValues } from 'get-random-values';
-import { ZeroHash } from "ethers";
 
-// let a = new Uint8Array(24);
-// console.log(crypto.getRandomValues(a));
-
-/*
-VITE_WEBAUTH_ADDR=0x9152322be84Aa52622C5Fd757DF15F5ed5965faF
-VITE_TOTP_CONTRACT=0xd7C9BB2Cb510B7096D384AD1F59006A20Fb419f7
-*/
+const { secp256r1 } = require('@noble/curves/p256');
+const curve_utils = require('@noble/curves/abstract/utils');
+const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
 async function main() {
 
   const signer = (await hre.ethers.getSigners())[0];
-  const contract = await hre.ethers.getContractAt('WebAuthNExample', '0xb1058eD01451B947A836dA3609f88C91804D0663', signer);
+  // const contract = await hre.ethers.getContractAt('AccountManager', '0xA4f2521C4feE1371bDb991295CA087604e0CC351', signer);
+  const contract = await hre.ethers.getContractAt('AccountManager', '0xcec1147b494d47F33B27b2F553c37526a4D3f0bb', signer);
 
   const gasPrice = (await signer.provider.getFeeData()).gasPrice;
-  const nonce = await signer.provider.getTransactionCount(await contract.gaspayingAddress());
+  const gasPayingAddress = await contract.gaspayingAddress();
+  console.log(gasPayingAddress);
+  const nonce = await signer.provider.getTransactionCount(gasPayingAddress);
 
   console.log(gasPrice);
   console.log(nonce);
 
   const saltOrig = await contract.salt();
   const salt = ethers.toBeArray(saltOrig);
-  const usernameHash = await hashedUsername('mkkalmia4', salt);
 
-  const password = "0x0000000000000000000000000000000000000000000000000000000000000001";
+  const SIMPLE_PASSWORD = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
-  const signedTx = await contract.gasless_registerECES256P256(
-    {
-      hashedUsername: usernameHash,
-      credentialId: "0x",
-      pubkey: {
-        kty: 0,
-        alg: 0,
-        crv: 0,
-        x: 0,
-        y: 0,
-      },
-      optionalPassword: password
+  const keyPair = generateNewKeypair();
+
+  const username = await hashedUsername("mkkalmia2", salt);
+  let registerData = {
+    hashedUsername: username,
+    credentialId: keyPair.credentialId,
+    pubkey: {
+      kty: 2, // Elliptic Curve format
+      alg: -7, // ES256 algorithm
+      crv: 1, // P-256 curve
+      x: keyPair.decoded_x,
+      y: keyPair.decoded_y,
     },
-    nonce, 
-    gasPrice
+    optionalPassword: SIMPLE_PASSWORD
+  };
+
+  let funcData = abiCoder.encode(
+    [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, bytes32 optionalPassword)" ], 
+    [ registerData ]
+  ); 
+
+  let gaslessData = abiCoder.encode(
+    [ "tuple(bytes funcData, uint8 txType)" ], 
+    [ 
+      {
+        funcData,
+        txType: 0, // GASLESS_TYPE_CREATE_ACCOUNT
+      } 
+    ]
+  ); 
+
+  const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
+  const dataHash = ethers.solidityPackedKeccak256(
+    ['uint256', 'uint256', 'bytes32'],
+    [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+  );
+  const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
+  console.log(signature);
+
+  const signedTx = await contract.generateGaslessTx(
+    gaslessData,
+    nonce,
+    gasPrice,
+    timestamp,
+    signature
   );
 
-  // console.log(signedTx);
+  console.log(signedTx);
 
   const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]) as string;
-  // await txHash.wait();
   console.log(txHash);
-
-  // const res = await contract.encrypted_registerECES256P256 (bytes32 nonce, bytes memory ciphertext);
-  // console.log(res);
 }
 
 main()
@@ -69,20 +88,27 @@ main()
 
 
 async function hashedUsername (username, salt) {
-  // if( ! username ) {
-  //     username = this.username;
-  // }
   if( ! username ) {
       throw new Error('Cannot hash undefined username!');
   }
-  // if( username in this._usernameHashesCache ) { // Cache pbkdf2 hashed usernames locally
-  //     return this._usernameHashesCache[username];
-  // }
-
-  const start = new Date();
   const result = pbkdf2Sync(username, salt, 100_000, 32, 'sha256');
-  const end = new Date();
-  // console.log('pbkdf2', username, '=', end.getTime() - start.getTime(), 'ms');
-  // this._usernameHashesCache[username] = result;
   return result;
+}
+
+function generateNewKeypair() {
+  const privateKey = secp256r1.utils.randomPrivateKey();
+  const pubKey = secp256r1.getPublicKey(privateKey, false);
+  const pubKeyString = "0x" + curve_utils.bytesToHex(pubKey);
+  const credentialId = abiCoder.encode([ "string" ], [ pubKeyString ]);
+
+  const coordsString = pubKeyString.slice(4, pubKeyString.length); // removes 0x04
+  const decoded_x = BigInt('0x' + coordsString.slice(0, 64)); // x is the first half
+  const decoded_y = BigInt('0x' + coordsString.slice(64, coordsString.length)); // y is the second half
+
+  return {
+    credentialId,
+    privateKey,
+    decoded_x,
+    decoded_y,
+  }
 }
