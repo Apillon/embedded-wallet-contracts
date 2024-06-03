@@ -3,12 +3,12 @@ const { pbkdf2Sync } = require("pbkdf2");
 
 async function main() {
   const signer = (await hre.ethers.getSigners())[0];
-  const contract = await hre.ethers.getContractAt('WebAuthNExample', '0xb1058eD01451B947A836dA3609f88C91804D0663', signer);
+  const contract = await hre.ethers.getContractAt('AccountManager', '0xDc9e8B6894E4754631887486BcF583B6B3158c4E', signer);
 
   const saltOrig = await contract.salt();
   const salt = ethers.toBeArray(saltOrig);
   
-  const username = await hashedUsername('mkkalmia3', salt);
+  const username = await hashedUsername('mkkalmia', salt);
   const res = await contract.userExists(username);
   console.log(res);
 

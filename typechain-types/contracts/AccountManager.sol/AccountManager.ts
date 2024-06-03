@@ -249,10 +249,20 @@ export interface AccountManagerInterface extends Interface {
 }
 
 export namespace GaslessTransactionEvent {
-  export type InputTuple = [dataHash: BytesLike];
-  export type OutputTuple = [dataHash: string];
+  export type InputTuple = [
+    dataHash: BytesLike,
+    hashedUsername: BytesLike,
+    publicAddress: AddressLike
+  ];
+  export type OutputTuple = [
+    dataHash: string,
+    hashedUsername: string,
+    publicAddress: string
+  ];
   export interface OutputObject {
     dataHash: string;
+    hashedUsername: string;
+    publicAddress: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -516,7 +526,7 @@ export interface AccountManager extends BaseContract {
   >;
 
   filters: {
-    "GaslessTransaction(bytes32)": TypedContractEvent<
+    "GaslessTransaction(bytes32,bytes32,address)": TypedContractEvent<
       GaslessTransactionEvent.InputTuple,
       GaslessTransactionEvent.OutputTuple,
       GaslessTransactionEvent.OutputObject

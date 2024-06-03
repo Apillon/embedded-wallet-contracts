@@ -4,9 +4,6 @@ async function main() {
   
     const iface = new ethers.Interface(jsonAbi);
     console.log(iface.format(""));
-
-    // const contract = await ethers.getContractFactory("Account");
-    // console.log(JSON.stringify(contract.interface.fragments));
   
   }
   

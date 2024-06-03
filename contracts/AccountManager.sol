@@ -63,7 +63,7 @@ contract AccountManagerStorage {
 
     address public devAddress;
 
-    event GaslessTransaction(bytes32 dataHash);
+    event GaslessTransaction(bytes32 indexed dataHash, bytes32 indexed hashedUsername, address indexed publicAddress);
 
 }
 
@@ -437,20 +437,34 @@ contract AccountManager is AccountManagerStorage
         bytes memory plaintext = Sapphire.decrypt(encryptionSecret, nonce, ciphertext, abi.encodePacked(address(this)));
         GaslessData memory gaslessArgs = abi.decode(plaintext, (GaslessData));
 
+        User memory user;
+
         if (gaslessArgs.txType == uint8(TxType.CreateAccount)) {
-            createAccount(abi.decode(gaslessArgs.funcData, (NewAccount)));
+            NewAccount memory args = abi.decode(gaslessArgs.funcData, (NewAccount));
+            createAccount(args);
+
+            // Get user for emit event
+            user = users[args.hashedUsername];
 
         } else if (gaslessArgs.txType == uint8(TxType.ManageCredential)) {
-            manageCredential(abi.decode(gaslessArgs.funcData, (ManageCred)));
+            ManageCred memory args = abi.decode(gaslessArgs.funcData, (ManageCred));
+            manageCredential(args);
+
+            // Get user for emit event
+            (user, ) = internal_getCredentialAndUser(args.credentialIdHashed);
 
         } else if (gaslessArgs.txType == uint8(TxType.ManageCredentialPassword)) {
-            manageCredentialPassword(abi.decode(gaslessArgs.funcData, (ManageCredPass)));
+            ManageCredPass memory args = abi.decode(gaslessArgs.funcData, (ManageCredPass));
+            manageCredentialPassword(args);
+
+            // Get user for emit event
+            user = users[abi.decode(args.data, (Credential)).hashedUsername];
 
         } else  {
             revert("Unsupported operation");
         }
 
-        emit GaslessTransaction(dataHash);
+        emit GaslessTransaction(dataHash, user.username, user.account.keypairAddress());
     }
 
     /**

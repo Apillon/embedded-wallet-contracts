@@ -51,7 +51,7 @@ describe("AccountManager", function() {
     SALT = ethers.toBeArray(await WA.salt());
   });
 
-  it.only("Sign random string with new account", async function() {
+  it("Sign random string with new account", async function() {
     const username = hashedUsername("testuser");
     const accountData = await createAccount(username, SIMPLE_PASSWORD);
 
