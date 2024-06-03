@@ -9,16 +9,7 @@ async function main() {
   const contract = await contractFactory.deploy('0x5f2B7077a7e5B4fdD97cBb56D9aD02a4f326896d', {value: hre.ethers.parseEther('0.3')});
   await contract.waitForDeployment();
 
-  // const sha1Factory = await hre.ethers.getContractFactory("SHA1");
-  // const sha1Library = await sha1Factory.deploy();
-  // await sha1Library.waitForDeployment();
-
-  // const totpFactory = await hre.ethers.getContractFactory('TOTPExample', { libraries: { SHA1: await sha1Library.getAddress() } });
-  // const totpContract = await totpFactory.deploy();
-  // await totpContract.waitForDeployment();
-
   console.log(`VITE_WEBAUTH_ADDR=${await contract.getAddress()}`);
-  // console.log(`VITE_TOTP_CONTRACT=${await totpContract.getAddress()}`);
   const chainId = (await hre.provider.getNetwork()).chainId;
   console.log(`VITE_SAPPHIRE_CHAIN_ID=0x${Number(chainId).toString(16)}`);
 

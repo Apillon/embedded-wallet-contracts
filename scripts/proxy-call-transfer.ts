@@ -65,20 +65,10 @@ main()
 
 
 async function hashedUsername (username, salt) {
-  // if( ! username ) {
-  //     username = this.username;
-  // }
   if( ! username ) {
       throw new Error('Cannot hash undefined username!');
   }
-  // if( username in this._usernameHashesCache ) { // Cache pbkdf2 hashed usernames locally
-  //     return this._usernameHashesCache[username];
-  // }
-
-  const start = new Date();
   const result = pbkdf2Sync(username, salt, 100_000, 32, 'sha256');
-  const end = new Date();
-  // console.log('pbkdf2', username, '=', end.getTime() - start.getTime(), 'ms');
-  // this._usernameHashesCache[username] = result;
+
   return result;
 }

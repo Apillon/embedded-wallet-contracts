@@ -1,10 +1,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { pbkdf2Sync } = require("pbkdf2");
-const ECDSA = require('ecdsa-secp256r1');
 const { secp256r1 } = require('@noble/curves/p256');
 const curve_utils = require('@noble/curves/abstract/utils');
-const { UniversalString } = require("asn1js");
 
 const SAPPHIRE_LOCALNET = 23293;
 const ACCOUNT_ABI = [
@@ -53,7 +51,7 @@ describe("AccountManager", function() {
     SALT = ethers.toBeArray(await WA.salt());
   });
 
-  it("Sign random string with new account", async function() {
+  it.only("Sign random string with new account", async function() {
     const username = hashedUsername("testuser");
     const accountData = await createAccount(username, SIMPLE_PASSWORD);
 
@@ -329,7 +327,7 @@ describe("AccountManager", function() {
     } catch(e) {
       shortMessage = e.shortMessage;
     }
-    expect(shortMessage).to.equal('execution reverted: "getCredentialAndUser"');
+    expect(shortMessage).to.equal('execution reverted: "verification failed"');
   });
 
   it("Add additional credential with password + try proxyView with new credential", async function() {

@@ -3,8 +3,5 @@
 /* eslint-disable */
 export * as accountSol from "./Account.sol";
 export * as accountManagerSol from "./AccountManager.sol";
-export * as webAuthNExampleSol from "./WebAuthNExample.sol";
 export * as lib from "./lib";
 export * as test from "./test";
-export { DummyToken__factory } from "./DummyToken__factory";
-export { TOTPExample__factory } from "./TOTPExample__factory";

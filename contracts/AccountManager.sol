@@ -339,7 +339,10 @@ contract AccountManager is AccountManagerStorage
 
         (user, credential) = internal_getCredentialAndUser(in_credentialIdHashed);
 
-        require( WebAuthN.verifyECES256P256(in_challenge, credential.pubkey, in_resp) );
+        require( 
+            WebAuthN.verifyECES256P256(in_challenge, credential.pubkey, in_resp), 
+            "verification failed" 
+        );
 
         return user;
     }

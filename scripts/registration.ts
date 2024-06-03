@@ -9,7 +9,6 @@ const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 async function main() {
 
   const signer = (await hre.ethers.getSigners())[0];
-  // const contract = await hre.ethers.getContractAt('AccountManager', '0xA4f2521C4feE1371bDb991295CA087604e0CC351', signer);
   const contract = await hre.ethers.getContractAt('AccountManager', '0xcec1147b494d47F33B27b2F553c37526a4D3f0bb', signer);
 
   const gasPrice = (await signer.provider.getFeeData()).gasPrice;
@@ -27,7 +26,7 @@ async function main() {
 
   const keyPair = generateNewKeypair();
 
-  const username = await hashedUsername("mkkalmia2", salt);
+  const username = await hashedUsername("mkkalmia3", salt);
   let registerData = {
     hashedUsername: username,
     credentialId: keyPair.credentialId,
@@ -63,6 +62,9 @@ async function main() {
   );
   const signature = await signer.signMessage(ethers.getBytes(dataHash));
 
+  console.log("dataHash:");
+  console.log(dataHash);
+  console.log("-----------------");
   console.log(signature);
 
   const signedTx = await contract.generateGaslessTx(

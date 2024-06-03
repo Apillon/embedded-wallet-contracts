@@ -1,16 +1,9 @@
-// require("@oasisprotocol/sapphire-hardhat");
-// import { HardhatUserConfig } from "hardhat/config";
-// require("@nomicfoundation/hardhat-toolbox");
-// require("hardhat-abi-exporter");
-// require("hardhat-contract-sizer");
-// require("solidity-coverage");
-
 import '@oasisprotocol/sapphire-hardhat';
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 
-const { privateKeyMainnet, privateKeyTestnet, mumbaiRPC, polygonRPC, polygonScanApiKey } = require("./secrets.json");
+const { privateKeyMainnet, privateKeyTestnet } = require("./secrets.json");
 
 // Hardhat Node and sapphireLocalnet test mnemonic.
 const TEST_HDWALLET = {
