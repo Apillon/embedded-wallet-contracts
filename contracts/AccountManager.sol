@@ -38,35 +38,60 @@ enum CredentialAction {
 
 contract AccountManagerStorage {
 
-    mapping(bytes32 => User) internal users;
-
-    mapping(bytes32 => bytes32[]) internal usernameToHashedCredentialIdList;
-
-    mapping(bytes32 => UserCredential) internal credentialsByHashedCredentialId;
-
-    bytes32 public salt;
-
-    bytes32 internal encryptionSecret;
-
     AccountFactory internal accountFactory;
 
+    /**
+     * @dev user account mapping
+     */
+    mapping(bytes32 => User) internal users;
+
+    /**
+     * @dev username to credential list mapping
+     */
+    mapping(bytes32 => bytes32[]) internal usernameToHashedCredentialIdList;
+
+    /**
+     * @dev hashedCredential to credential
+     */
+    mapping(bytes32 => UserCredential) internal credentialsByHashedCredentialId;
+
+    /**
+     * @dev sapphire encription salt
+     */
+    bytes32 public salt;
+
+    /**
+     * @dev sapphire encription secret
+     */
+    bytes32 internal encryptionSecret;
+
+    /**
+     * @dev data used for chiper encription and webauthn challanges
+     */
+    bytes32 public personalization;
+
+    /**
+     * @dev address performing gasless transactions - public key
+     */
     address public gaspayingAddress;
 
+    /**
+     * @dev address performing gasless transactions - private key
+     */
     bytes32 internal gaspayingSecret;
-
-    bytes32 public personalization;
 
     /**
      * @dev address signing on backend (for gasless transactions)
      */
     address public signer;
 
+    /**
+     * @dev address with dev privileges
+     */
     address public devAddress;
 
     event GaslessTransaction(bytes32 indexed dataHash, bytes32 indexed hashedUsername, address indexed publicAddress);
-
 }
-
 
 contract AccountManager is AccountManagerStorage
 {
@@ -88,12 +113,16 @@ contract AccountManager is AccountManagerStorage
 
         personalization = sha256(abi.encodePacked(block.chainid, address(this), salt));
 
-        if( msg.value > 0 ) {
+        if(msg.value > 0) {
             payable(gaspayingAddress).transfer(msg.value);
         }
     }
 
-
+    /**
+     * @dev Get account data for username
+     *
+     * @param in_username hashed username
+     */
     function getAccount (bytes32 in_username)
         external view
         returns (Account account, address keypairAddress)
@@ -105,7 +134,11 @@ contract AccountManager is AccountManagerStorage
         keypairAddress = account.keypairAddress();
     }
 
-
+    /**
+     * @dev Check if username exists
+     *
+     * @param in_username hashed username
+     */
     function userExists (bytes32 in_username)
         public view
         returns (bool)
@@ -113,6 +146,131 @@ contract AccountManager is AccountManagerStorage
         User storage user = users[in_username];
 
         return user.username != bytes32(0x0);
+    }
+
+    struct GaslessData {
+        bytes funcData;
+        uint8 txType;
+    }
+
+    struct NewAccount {
+        bytes32 hashedUsername;
+        bytes credentialId;
+        CosePublicKey pubkey;
+        bytes32 optionalPassword;
+    }
+
+    /**
+     * @dev Create new account
+     *
+     * @param args new account data
+     */
+    function createAccount (NewAccount memory args)
+        public
+    {
+        // Don't allow duplicate account
+        require(! userExists(args.hashedUsername), "createAccount: user exists");
+
+        internal_createAccount(args.hashedUsername, args.optionalPassword);
+
+        internal_addCredential(args.hashedUsername, args.credentialId, args.pubkey);
+    }
+
+    struct ManageCred {
+        bytes32 credentialIdHashed;
+        AuthenticatorResponse resp;
+        bytes data;
+    }
+
+    struct ManageCredPass {
+        bytes32 digest;
+        bytes data;
+    }
+
+    struct Credential {
+        bytes32 hashedUsername;
+        bytes credentialId;
+        CosePublicKey pubkey;
+        CredentialAction action;
+    }
+
+    /**
+     * @dev Add/Remove credential with credential
+     *
+     * @param args credential data
+     */
+    function manageCredential (ManageCred memory args) 
+        public 
+    {
+        Credential memory credential = abi.decode(args.data, (Credential));
+
+        bytes32 challenge = sha256(abi.encodePacked(personalization, sha256(args.data)));
+
+        User storage user = internal_verifyCredential(args.credentialIdHashed, challenge, args.resp);
+
+        // Perform credential action
+        if (credential.action == CredentialAction.Add) {
+            internal_addCredential(user.username, credential.credentialId, credential.pubkey);
+        } else if (credential.action == CredentialAction.Remove) {
+            internal_removeCredential(user.username, credential.credentialId);
+        } else  {
+            revert("Unsupported operation");
+        }
+    }
+
+    /**
+     * @dev Add/Remove credential with password
+     *
+     * @param args credential data
+     */
+    function manageCredentialPassword (ManageCredPass memory args) 
+        public 
+    {
+        Credential memory credential = abi.decode(args.data, (Credential));
+
+        User storage user = users[credential.hashedUsername];
+        require(user.username != bytes32(0), "Invalid username");
+        require(user.password != bytes32(0), "Invalid password");
+
+        // Verify data
+        require(
+            keccak256(abi.encodePacked(user.password, args.data)) == args.digest,
+            "digest verification failed"
+        );
+
+        // Perform credential action
+        if (credential.action == CredentialAction.Add) {
+            internal_addCredential(user.username, credential.credentialId, credential.pubkey);
+        } else if (credential.action == CredentialAction.Remove) {
+            internal_removeCredential(user.username, credential.credentialId);
+        } else  {
+            revert("Unsupported operation");
+        }
+    }
+
+    /**
+     * @dev Retrieve a list of credential IDs for a specific user
+     *
+     * @param in_hashedUsername Hashed username
+     */
+    function credentialIdsByUsername(bytes32 in_hashedUsername)
+        public view
+        returns (bytes[] memory out_credentialIds)
+    {
+        require(userExists(in_hashedUsername), "credentialIdsByUsername");
+
+        bytes32[] storage credentialIdHashes = usernameToHashedCredentialIdList[in_hashedUsername];
+
+        uint length = credentialIdHashes.length;
+
+        out_credentialIds = new bytes[](length);
+
+        for( uint i = 0; i < length; i++ )
+        {
+            UserCredential storage cred = credentialsByHashedCredentialId[credentialIdHashes[i]];
+
+            out_credentialIds[i] = cred.credentialId;
+        }
     }
 
     /**
@@ -208,112 +366,6 @@ contract AccountManager is AccountManagerStorage
         user.password = in_optionalPassword;
     }
 
-    struct GaslessData {
-        bytes funcData;
-        uint8 txType;
-    }
-
-    struct NewAccount {
-        bytes32 hashedUsername;
-        bytes credentialId;
-        CosePublicKey pubkey;
-        bytes32 optionalPassword;
-    }
-
-    function createAccount (NewAccount memory args)
-        public
-    {
-        // Don't allow duplicate account
-        require( ! userExists(args.hashedUsername), "createAccount: user exists" );
-
-        internal_createAccount(args.hashedUsername, args.optionalPassword);
-
-        internal_addCredential(args.hashedUsername, args.credentialId, args.pubkey);
-    }
-
-    struct ManageCred {
-        bytes32 credentialIdHashed;
-        AuthenticatorResponse resp;
-        bytes data;
-    }
-
-    struct ManageCredPass {
-        bytes32 digest;
-        bytes data;
-    }
-
-    struct Credential {
-        bytes32 hashedUsername;
-        bytes credentialId;
-        CosePublicKey pubkey;
-        CredentialAction action;
-    }
-
-    function manageCredential (ManageCred memory args) 
-        public 
-    {
-        Credential memory credential = abi.decode(args.data, (Credential));
-
-        bytes32 challenge = sha256(abi.encodePacked(personalization, sha256(args.data)));
-
-        User storage user = internal_verifyCredential(args.credentialIdHashed, challenge, args.resp);
-
-        // Perform credential action
-        if (credential.action == CredentialAction.Add) {
-            internal_addCredential(user.username, credential.credentialId, credential.pubkey);
-        } else if (credential.action == CredentialAction.Remove) {
-            internal_removeCredential(user.username, credential.credentialId);
-        } else  {
-            revert("Unsupported operation");
-        }
-    }
-
-    function manageCredentialPassword (ManageCredPass memory args) 
-        public 
-    {
-        Credential memory credential = abi.decode(args.data, (Credential));
-
-        User storage user = users[credential.hashedUsername];
-        require(user.username != bytes32(0), "User doesn't exist");
-        require(user.password != bytes32(0), "Password not set");
-
-        // Verify data
-        require(keccak256(abi.encodePacked(user.password, args.data)) == args.digest);
-
-        // Perform credential action
-        if (credential.action == CredentialAction.Add) {
-            internal_addCredential(user.username, credential.credentialId, credential.pubkey);
-        } else if (credential.action == CredentialAction.Remove) {
-            internal_removeCredential(user.username, credential.credentialId);
-        } else  {
-            revert("Unsupported operation");
-        }
-    }
-
-    /**
-     * Retrieve a list of credential IDs for a specific user
-     * @param in_hashedUsername Hashed username
-     */
-    function credentialIdsByUsername(bytes32 in_hashedUsername)
-        public view
-        returns (bytes[] memory out_credentialIds)
-    {
-        require( userExists(in_hashedUsername), "credentialIdsByUsername" );
-
-        bytes32[] storage credentialIdHashes = usernameToHashedCredentialIdList[in_hashedUsername];
-
-        uint length = credentialIdHashes.length;
-
-        out_credentialIds = new bytes[](length);
-
-        for( uint i = 0; i < length; i++ )
-        {
-            UserCredential storage cred = credentialsByHashedCredentialId[credentialIdHashes[i]];
-
-            out_credentialIds[i] = cred.credentialId;
-        }
-    }
-
     function internal_getCredentialAndUser (bytes32 in_credentialIdHashed)
         internal view
         returns (
@@ -348,7 +400,7 @@ contract AccountManager is AccountManagerStorage
     }
 
     /**
-     * Performs a proxied call to the users account
+     * @dev Performs a proxied call to the users account
      *
      * @param user executor account
      * @param in_data calldata to pass to account proxy
@@ -372,7 +424,7 @@ contract AccountManager is AccountManagerStorage
     }
 
     /**
-     * Performs a proxied call to the verified users account
+     * @dev Performs a proxied call to the verified users account
      *
      * @param in_hashedUsername hashedUsername
      * @param in_digest hashed(password + in_data)
@@ -389,15 +441,24 @@ contract AccountManager is AccountManagerStorage
     {
         User storage user = users[in_hashedUsername];
 
-        require( user.username != bytes32(0) );
-        require( user.password != bytes32(0) );
-        require( keccak256(abi.encodePacked(user.password, in_data)) == in_digest );
+        require( 
+            user.username != bytes32(0),
+            "Invalid username"
+        );
+        require(
+            user.password != bytes32(0),
+            "Invalid password"    
+        );
+        require(
+            keccak256(abi.encodePacked(user.password, in_data)) == in_digest,
+            "in_digest verification failed"
+        );
 
         return internal_proxyView(user, in_data);
     }
 
     /**
-     * Performs a proxied call to the verified users account
+     * @dev Performs a proxied call to the verified users account
      *
      * @param in_credentialIdHashed credentialIdHashed
      * @param in_resp Authenticator response
@@ -420,10 +481,12 @@ contract AccountManager is AccountManagerStorage
     }
 
     /**
-     * Gasless transaction resolves here
+     * @dev Gasless transaction resolves here
      *
      * @param ciphertext encrypted in_data
      * @param nonce nonce used to decrypt
+     * @param timestamp validity expiration
+     * @param dataHash keccak of data (used to parse emitted events on backend)
      */
     function encryptedTx (
         bytes32 nonce, 
@@ -468,7 +531,7 @@ contract AccountManager is AccountManagerStorage
     }
 
     /**
-     * Generates a private signed transaction
+     * @dev Generates a private signed transaction
      *
      * @param in_data calldata to execute in users behalf
      * @param nonce nonce to be used in transaction
@@ -525,8 +588,9 @@ contract AccountManager is AccountManagerStorage
         return EIP155Signer.sign(gaspayingAddress, gaspayingSecret, gaslessTx);
     }
 
-    /*
+    /**
      * @dev Set signer address.
+     * 
      * @param _signer Signer address
      */
     function setSigner(address _signer) external {
@@ -535,6 +599,14 @@ contract AccountManager is AccountManagerStorage
         signer = _signer;
     }
 
+    /**
+     * @dev Validates signature.
+     *
+     * @param _gasPrice gas price
+     * @param _timestamp timestamp
+     * @param _dataKeccak keccak of data
+     * @param _signature signature of above parameters
+     */
     function validateSignature(
         uint256 _gasPrice,
         uint256 _timestamp,
