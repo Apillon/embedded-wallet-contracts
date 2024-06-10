@@ -5,9 +5,11 @@ const { secp256r1 } = require('@noble/curves/p256');
 const curve_utils = require('@noble/curves/abstract/utils');
 
 const SAPPHIRE_LOCALNET = 23293;
+const GAS_LIMIT = 1000000;
 const ACCOUNT_ABI = [
   'function signEIP155((uint64 nonce,uint256 gasPrice,uint64 gasLimit,address to,uint256 value,bytes data,uint256 chainId)) view returns (bytes)',
   'function sign(bytes32 digest) view returns ((bytes32 r,bytes32 s,uint256 v))',
+  'function exportPrivateKey() view returns (bytes32)',
 ];
 
 describe("AccountManager", function() {
@@ -75,6 +77,30 @@ describe("AccountManager", function() {
     expect(recoveredAddress).to.equal(accountData.publicKey);
   });
 
+  it("Export PK of new account", async function() {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount(username, SIMPLE_PASSWORD);
+
+    expect(await WA.userExists(username)).to.equal(true);
+
+    const iface = new ethers.Interface(ACCOUNT_ABI);
+    const in_data = iface.encodeFunctionData('exportPrivateKey', []);
+
+    const in_digest = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes'],
+      [SIMPLE_PASSWORD, in_data],
+    );
+
+    const resp = await WA.proxyViewPassword(
+      username, in_digest, in_data
+    );
+
+    const [exportedPrivateKey] = iface.decodeFunctionResult('exportPrivateKey', resp).toArray();
+
+    const unlockedWallet = new hre.ethers.Wallet(exportedPrivateKey);
+    expect(unlockedWallet.address).to.equal(accountData.publicKey);
+  });
+
   it("Register + preventing duplicates", async function() {
     const username = hashedUsername("testuser");
     const accountData = await createAccount(username, SIMPLE_PASSWORD);
@@ -129,14 +155,15 @@ describe("AccountManager", function() {
     const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
 
     const dataHash = ethers.solidityPackedKeccak256(
-      ['uint256', 'uint256', 'bytes32'],
-      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+      ['uint256', 'uint64', 'uint256', 'bytes32'],
+      [gasPrice, GAS_LIMIT, timestamp, ethers.keccak256(gaslessData)],
     );
     
     const signature = await signer.signMessage(ethers.getBytes(dataHash));
 
     const resp = await WA.validateSignature(
       gasPrice,
+      GAS_LIMIT,
       timestamp,
       ethers.keccak256(gaslessData),
       signature
@@ -183,8 +210,8 @@ describe("AccountManager", function() {
 
     const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
     const dataHash = ethers.solidityPackedKeccak256(
-      ['uint256', 'uint256', 'bytes32'],
-      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+      ['uint256', 'uint64', 'uint256', 'bytes32'],
+      [gasPrice, GAS_LIMIT, timestamp, ethers.keccak256(gaslessData)],
     );
     const signature = await signer.signMessage(ethers.getBytes(dataHash));
 
@@ -192,6 +219,7 @@ describe("AccountManager", function() {
       gaslessData,
       nonce,
       gasPrice,
+      GAS_LIMIT,
       timestamp,
       signature
     );
@@ -566,8 +594,8 @@ describe("AccountManager", function() {
 
     const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
     const dataHash = ethers.solidityPackedKeccak256(
-      ['uint256', 'uint256', 'bytes32'],
-      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+      ['uint256', 'uint64', 'uint256', 'bytes32'],
+      [gasPrice, GAS_LIMIT, timestamp, ethers.keccak256(gaslessData)],
     );
     const signature = await signer.signMessage(ethers.getBytes(dataHash));
 
@@ -575,6 +603,7 @@ describe("AccountManager", function() {
       gaslessData,
       nonce,
       gasPrice,
+      GAS_LIMIT,
       timestamp,
       signature
     );
@@ -1007,8 +1036,8 @@ describe("AccountManager", function() {
 
     const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
     const dataHash = ethers.solidityPackedKeccak256(
-      ['uint256', 'uint256', 'bytes32'],
-      [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+      ['uint256', 'uint64', 'uint256', 'bytes32'],
+      [gasPrice, GAS_LIMIT, timestamp, ethers.keccak256(gaslessData)],
     );
     const signature = await signer.signMessage(ethers.getBytes(dataHash));
 
@@ -1016,6 +1045,7 @@ describe("AccountManager", function() {
       gaslessData,
       nonce,
       gasPrice,
+      GAS_LIMIT,
       timestamp,
       signature
     );
@@ -1070,7 +1100,7 @@ describe("AccountManager", function() {
     const txRequest = {
       to: req.to,
       data: req.data,
-      gasLimit: 1000000,
+      gasLimit: GAS_LIMIT,
       value: req.value,
       nonce: await owner.provider.getTransactionCount(senderAddress),
       chainId: SAPPHIRE_LOCALNET,

@@ -122,6 +122,7 @@ export interface AccountManagerInterface extends Interface {
       | "gaspayingAddress"
       | "generateGaslessTx"
       | "getAccount"
+      | "hashUsage"
       | "manageCredential"
       | "manageCredentialPassword"
       | "personalization"
@@ -158,10 +159,21 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "generateGaslessTx",
-    values: [BytesLike, BigNumberish, BigNumberish, BigNumberish, BytesLike]
+    values: [
+      BytesLike,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BytesLike
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "getAccount",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "hashUsage",
     values: [BytesLike]
   ): string;
   encodeFunctionData(
@@ -196,7 +208,7 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "validateSignature",
-    values: [BigNumberish, BigNumberish, BytesLike, BytesLike]
+    values: [BigNumberish, BigNumberish, BigNumberish, BytesLike, BytesLike]
   ): string;
 
   decodeFunctionResult(
@@ -221,6 +233,7 @@ export interface AccountManagerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getAccount", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "hashUsage", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "manageCredential",
     data: BytesLike
@@ -345,6 +358,7 @@ export interface AccountManager extends BaseContract {
       in_data: BytesLike,
       nonce: BigNumberish,
       gasPrice: BigNumberish,
+      gasLimit: BigNumberish,
       timestamp: BigNumberish,
       signature: BytesLike
     ],
@@ -357,6 +371,8 @@ export interface AccountManager extends BaseContract {
     [[string, string] & { account: string; keypairAddress: string }],
     "view"
   >;
+
+  hashUsage: TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
 
   manageCredential: TypedContractMethod<
     [args: AccountManager.ManageCredStruct],
@@ -397,6 +413,7 @@ export interface AccountManager extends BaseContract {
   validateSignature: TypedContractMethod<
     [
       _gasPrice: BigNumberish,
+      _gasLimit: BigNumberish,
       _timestamp: BigNumberish,
       _dataKeccak: BytesLike,
       _signature: BytesLike
@@ -444,6 +461,7 @@ export interface AccountManager extends BaseContract {
       in_data: BytesLike,
       nonce: BigNumberish,
       gasPrice: BigNumberish,
+      gasLimit: BigNumberish,
       timestamp: BigNumberish,
       signature: BytesLike
     ],
@@ -457,6 +475,9 @@ export interface AccountManager extends BaseContract {
     [[string, string] & { account: string; keypairAddress: string }],
     "view"
   >;
+  getFunction(
+    nameOrSignature: "hashUsage"
+  ): TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "manageCredential"
   ): TypedContractMethod<
@@ -509,6 +530,7 @@ export interface AccountManager extends BaseContract {
   ): TypedContractMethod<
     [
       _gasPrice: BigNumberish,
+      _gasLimit: BigNumberish,
       _timestamp: BigNumberish,
       _dataKeccak: BytesLike,
       _signature: BytesLike

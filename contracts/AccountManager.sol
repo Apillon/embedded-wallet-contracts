@@ -90,6 +90,11 @@ contract AccountManagerStorage {
      */
     address public devAddress;
 
+    /**
+     * @dev hash usage mapping to prevent reuse of same hash multiple times
+     */
+    mapping(bytes32 => bool) public hashUsage;
+
     event GaslessTransaction(bytes32 indexed dataHash, bytes32 indexed hashedUsername, address indexed publicAddress);
 }
 
@@ -496,6 +501,9 @@ contract AccountManager is AccountManagerStorage
     ) external {
         require(msg.sender == gaspayingAddress, "Only gaspayingAddress");
         require(timestamp >= block.timestamp, "Expired signature");
+        require(!hashUsage[dataHash], "dataHash already used");
+
+        hashUsage[dataHash] = true;
 
         bytes memory plaintext = Sapphire.decrypt(encryptionSecret, nonce, ciphertext, abi.encodePacked(address(this)));
         GaslessData memory gaslessArgs = abi.decode(plaintext, (GaslessData));
@@ -536,6 +544,7 @@ contract AccountManager is AccountManagerStorage
      * @param in_data calldata to execute in users behalf
      * @param nonce nonce to be used in transaction
      * @param gasPrice gasPrice to be used in transaction
+     * @param gasLimit gasLimit to be used in transaction
      * @param timestamp signature expiration
      * @param signature signature for the above sensitive data
      * @return out_data signed transaction
@@ -544,6 +553,7 @@ contract AccountManager is AccountManagerStorage
         bytes calldata in_data,
         uint64 nonce,
         uint256 gasPrice,
+        uint64 gasLimit,
         uint256 timestamp,
         bytes memory signature
     )
@@ -555,12 +565,14 @@ contract AccountManager is AccountManagerStorage
         // Verify signature
         (bytes32 dataHash, bool isValid) = validateSignature(
             gasPrice,
+            gasLimit,
             timestamp,
             keccak256(in_data),
             signature
         );
 
         require(isValid, "Invalid signature");
+        require(!hashUsage[dataHash], "dataHash already used");
 
         bytes32 cipherNonce = bytes32(Sapphire.randomBytes(32, in_data));
 
@@ -575,7 +587,7 @@ contract AccountManager is AccountManagerStorage
         EIP155Signer.EthTx memory gaslessTx = EIP155Signer.EthTx({
             nonce: nonce,
             gasPrice: gasPrice,
-            gasLimit: 1000000,
+            gasLimit: gasLimit,
             to: address(this),
             value: 0,
             data: abi.encodeCall(
@@ -603,18 +615,20 @@ contract AccountManager is AccountManagerStorage
      * @dev Validates signature.
      *
      * @param _gasPrice gas price
+     * @param _gasLimit gas limit
      * @param _timestamp timestamp
      * @param _dataKeccak keccak of data
      * @param _signature signature of above parameters
      */
     function validateSignature(
         uint256 _gasPrice,
+        uint64 _gasLimit,
         uint256 _timestamp,
         bytes32 _dataKeccak,
         bytes memory _signature
     ) public view returns (bytes32, bool) {
         bytes32 dataHash = keccak256(
-            abi.encodePacked(_gasPrice, _timestamp, _dataKeccak)
+            abi.encodePacked(_gasPrice, _gasLimit, _timestamp, _dataKeccak)
         );
         bytes32 message = MessageHashUtils.toEthSignedMessageHash(dataHash);
         address receivedAddress = ECDSA.recover(message, _signature);

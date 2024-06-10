@@ -86,6 +86,14 @@ contract Account {
         return EthereumUtils.sign(keypairAddress, keypairSecret, digest);
     }
 
+    function exportPrivateKey ()
+        public view
+        onlyByController
+        returns (bytes32)
+    {
+        return keypairSecret;
+    }
+
     function transfer (address in_target, uint256 amount)
         public
         onlyByController

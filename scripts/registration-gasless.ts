@@ -26,7 +26,7 @@ async function main() {
 
   const keyPair = generateNewKeypair();
 
-  const username = await hashedUsername("mkkalmia6", salt);
+  const username = await hashedUsername("mkkalmia", salt);
   let registerData = {
     hashedUsername: username,
     credentialId: keyPair.credentialId,
@@ -40,10 +40,45 @@ async function main() {
     optionalPassword: SIMPLE_PASSWORD
   };
 
-  const tx = await contract.createAccount(registerData);
-  await tx.wait();
+  let funcData = abiCoder.encode(
+    [ "tuple(bytes32 hashedUsername, bytes credentialId, tuple(uint8 kty, int8 alg, uint8 crv, uint256 x, uint256 y) pubkey, bytes32 optionalPassword)" ], 
+    [ registerData ]
+  ); 
 
-  console.log(`txHash: ${tx.hash}`);
+  let gaslessData = abiCoder.encode(
+    [ "tuple(bytes funcData, uint8 txType)" ], 
+    [ 
+      {
+        funcData,
+        txType: 0, // GASLESS_TYPE_CREATE_ACCOUNT
+      } 
+    ]
+  ); 
+
+  const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
+  const dataHash = ethers.solidityPackedKeccak256(
+    ['uint256', 'uint256', 'bytes32'],
+    [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+  );
+  const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
+  console.log("dataHash:");
+  console.log(dataHash);
+  console.log("-----------------");
+  console.log(signature);
+
+  const signedTx = await contract.generateGaslessTx(
+    gaslessData,
+    nonce,
+    gasPrice,
+    timestamp,
+    signature
+  );
+
+  console.log(signedTx);
+
+  const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]) as string;
+  console.log(txHash);
 }
 
 main()

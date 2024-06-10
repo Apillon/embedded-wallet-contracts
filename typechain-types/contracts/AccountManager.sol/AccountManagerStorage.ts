@@ -27,6 +27,7 @@ export interface AccountManagerStorageInterface extends Interface {
     nameOrSignature:
       | "devAddress"
       | "gaspayingAddress"
+      | "hashUsage"
       | "personalization"
       | "salt"
       | "signer"
@@ -43,6 +44,10 @@ export interface AccountManagerStorageInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "hashUsage",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "personalization",
     values?: undefined
   ): string;
@@ -54,6 +59,7 @@ export interface AccountManagerStorageInterface extends Interface {
     functionFragment: "gaspayingAddress",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "hashUsage", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "personalization",
     data: BytesLike
@@ -131,6 +137,8 @@ export interface AccountManagerStorage extends BaseContract {
 
   gaspayingAddress: TypedContractMethod<[], [string], "view">;
 
+  hashUsage: TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
+
   personalization: TypedContractMethod<[], [string], "view">;
 
   salt: TypedContractMethod<[], [string], "view">;
@@ -145,6 +153,9 @@ export interface AccountManagerStorage extends BaseContract {
   getFunction(
     nameOrSignature: "gaspayingAddress"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "hashUsage"
+  ): TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "personalization"
   ): TypedContractMethod<[], [string], "view">;

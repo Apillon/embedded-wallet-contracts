@@ -67,6 +67,7 @@ export interface AccountInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "call"
+      | "exportPrivateKey"
       | "init"
       | "isController"
       | "keypairAddress"
@@ -80,6 +81,10 @@ export interface AccountInterface extends Interface {
   encodeFunctionData(
     functionFragment: "call",
     values: [AddressLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "exportPrivateKey",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "init", values: [AddressLike]): string;
   encodeFunctionData(
@@ -109,6 +114,10 @@ export interface AccountInterface extends Interface {
   ): string;
 
   decodeFunctionResult(functionFragment: "call", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "exportPrivateKey",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "init", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "isController",
@@ -177,6 +186,8 @@ export interface Account extends BaseContract {
     "nonpayable"
   >;
 
+  exportPrivateKey: TypedContractMethod<[], [string], "view">;
+
   init: TypedContractMethod<[starterOwner: AddressLike], [void], "nonpayable">;
 
   isController: TypedContractMethod<[who: AddressLike], [boolean], "view">;
@@ -224,6 +235,9 @@ export interface Account extends BaseContract {
     [string],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "exportPrivateKey"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "init"
   ): TypedContractMethod<[starterOwner: AddressLike], [void], "nonpayable">;
