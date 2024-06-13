@@ -8,8 +8,10 @@ const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
 async function main() {
 
+  const GAS_LIMIT = 1000000;
+
   const signer = (await hre.ethers.getSigners())[0];
-  const contract = await hre.ethers.getContractAt('AccountManager', '0xDc9e8B6894E4754631887486BcF583B6B3158c4E', signer);
+  const contract = await hre.ethers.getContractAt('AccountManager', '0xF35C3eB93c6D3764A7D5efC6e9DEB614779437b1', signer);
 
   const gasPrice = (await signer.provider.getFeeData()).gasPrice;
   const gasPayingAddress = await contract.gaspayingAddress();
@@ -57,8 +59,8 @@ async function main() {
 
   const timestamp = Math.ceil(new Date().getTime() / 1000) + 3600;
   const dataHash = ethers.solidityPackedKeccak256(
-    ['uint256', 'uint256', 'bytes32'],
-    [gasPrice, timestamp, ethers.keccak256(gaslessData)],
+    ['uint256', 'uint64', 'uint256', 'bytes32'],
+    [gasPrice, GAS_LIMIT, timestamp, ethers.keccak256(gaslessData)],
   );
   const signature = await signer.signMessage(ethers.getBytes(dataHash));
 
@@ -71,6 +73,7 @@ async function main() {
     gaslessData,
     nonce,
     gasPrice,
+    GAS_LIMIT,
     timestamp,
     signature
   );
