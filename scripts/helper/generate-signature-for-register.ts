@@ -4,8 +4,7 @@ import hre from "hardhat";
 async function main() {
 
   const signer = (await hre.ethers.getSigners())[0];
-  const contract = await hre.ethers.getContractAt('AccountManager', '0xF35C3eB93c6D3764A7D5efC6e9DEB614779437b1', signer);
-
+  
   const gasPrice = "100000000000";
   const gasLimit = "1000000";
   const timestamp = 1718793580;

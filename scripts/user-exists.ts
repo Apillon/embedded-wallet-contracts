@@ -2,13 +2,18 @@ const hre = require("hardhat");
 const { pbkdf2Sync } = require("pbkdf2");
 
 async function main() {
+  // DATA to be set
+  const accountManagerAddress = "0xDc9e8B6894E4754631887486BcF583B6B3158c4E";
+  const usernamePlain = "someUniqueUsername";
+  // Data to be set [END]
+
   const signer = (await hre.ethers.getSigners())[0];
-  const contract = await hre.ethers.getContractAt('AccountManager', '0xDc9e8B6894E4754631887486BcF583B6B3158c4E', signer);
+  const contract = await hre.ethers.getContractAt('AccountManager', accountManagerAddress, signer);
 
   const saltOrig = await contract.salt();
   const salt = ethers.toBeArray(saltOrig);
   
-  const username = await hashedUsername('mkkalmia', salt);
+  const username = await hashedUsername(usernamePlain, salt);
   const res = await contract.userExists(username);
   console.log(res);
 

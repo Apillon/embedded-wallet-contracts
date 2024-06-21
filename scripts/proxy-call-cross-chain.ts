@@ -7,7 +7,7 @@ async function main() {
   const signer = (await hre.ethers.getSigners())[0];
 
   if (RUN_MODE == 0) {
-    const contract = await hre.ethers.getContractAt('WebAuthNExample', '0xb1058eD01451B947A836dA3609f88C91804D0663', signer);
+    const contract = await hre.ethers.getContractAt('AccountManager', '0xb1058eD01451B947A836dA3609f88C91804D0663', signer);
 
     const saltOrig = await contract.salt();
     const salt = hre.ethers.toBeArray(saltOrig);
