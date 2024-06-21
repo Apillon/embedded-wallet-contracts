@@ -3,7 +3,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 
-const { privateKeyMainnet, privateKeyTestnet } = require("./secrets.json");
+const { privateKeyMainnet, privateKeyTestnet, polygonAmoyRPC } = require("./secrets.json");
 
 // Hardhat Node and sapphireLocalnet test mnemonic.
 const TEST_HDWALLET = {
@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
       accounts: TEST_HDWALLET,
     },
     polygonAmoy: {
-      url: "https://polygon-amoy.g.alchemy.com/v2/_Kpo60K9na2S0-E-dvsHYinINcDXBR-8", 
+      url: polygonAmoyRPC, 
       chainId: 80002,
       gasPrice: 13000000000, // 130gwei
       gas: 2000000,
