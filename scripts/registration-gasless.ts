@@ -8,27 +8,27 @@ const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
 async function main() {
 
+  // DATA to be set
+  const accountManagerAddress = "0xDc9e8B6894E4754631887486BcF583B6B3158c4E";
+  const usernamePlain = "someUniqueUsername_999";
+  const password = "0x0000000000000000000000000000000000000000000000000000000000000001";
+  // Data to be set [END]
+
   const GAS_LIMIT = 1000000;
 
   const signer = (await hre.ethers.getSigners())[0];
-  const contract = await hre.ethers.getContractAt('AccountManager', '0xF35C3eB93c6D3764A7D5efC6e9DEB614779437b1', signer);
+  const contract = await hre.ethers.getContractAt('AccountManager', accountManagerAddress, signer);
 
   const gasPrice = (await signer.provider.getFeeData()).gasPrice;
   const gasPayingAddress = await contract.gaspayingAddress();
-  console.log(gasPayingAddress);
   const nonce = await signer.provider.getTransactionCount(gasPayingAddress);
-
-  console.log(gasPrice);
-  console.log(nonce);
 
   const saltOrig = await contract.salt();
   const salt = ethers.toBeArray(saltOrig);
 
-  const SIMPLE_PASSWORD = "0x0000000000000000000000000000000000000000000000000000000000000001";
-
   const keyPair = generateNewKeypair();
 
-  const username = await hashedUsername("mkkalmia", salt);
+  const username = await hashedUsername(usernamePlain, salt);
   let registerData = {
     hashedUsername: username,
     credentialId: keyPair.credentialId,
@@ -39,7 +39,7 @@ async function main() {
       x: keyPair.decoded_x,
       y: keyPair.decoded_y,
     },
-    optionalPassword: SIMPLE_PASSWORD
+    optionalPassword: password
   };
 
   let funcData = abiCoder.encode(
@@ -64,11 +64,6 @@ async function main() {
   );
   const signature = await signer.signMessage(ethers.getBytes(dataHash));
 
-  console.log("dataHash:");
-  console.log(dataHash);
-  console.log("-----------------");
-  console.log(signature);
-
   const signedTx = await contract.generateGaslessTx(
     gaslessData,
     nonce,
@@ -77,8 +72,6 @@ async function main() {
     timestamp,
     signature
   );
-
-  console.log(signedTx);
 
   const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]) as string;
   console.log(txHash);

@@ -43,7 +43,12 @@ Note: deployment should be executed with unwrapped ethers provider in order to b
 1. Set `accountManagerAddress`, `usernamePlain`, `password` in `scripts/registration.ts`
 2. Run `npx hardhat run --network sapphireTestnet ./scripts/registration.ts`
 
-Note: `usernamePlain` has to be unique.
+#### Gasless Account registration (predefined address with funds loaded pays for gas)
+
+1. Set `accountManagerAddress`, `usernamePlain`, `password` in `scripts/registration-gasless.ts`
+2. Run `npx hardhat run --network sapphireTestnet ./scripts/registration-gasless.ts`
+
+Note: `usernamePlain` has to be unique. If the transaction fails verify that `signer` address is the same on the AccountManager.sol & in the script
 
 #### Verify if registration success
 
