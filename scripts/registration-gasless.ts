@@ -74,7 +74,10 @@ async function main() {
   );
 
   const txHash = await hre.ethers.provider.send('eth_sendRawTransaction', [signedTx]) as string;
-  console.log(txHash);
+  console.log(`txHash: ${txHash}`);
+  console.log(`----------------------`);
+  console.log(`credential:`);
+  console.log(keyPair);
 }
 
 main()
