@@ -54,3 +54,51 @@ Note: `usernamePlain` has to be unique. If the transaction fails verify that `si
 
 1. Set `accountManagerAddress`, `usernamePlain` in `scripts/user-exists.ts`
 2. Run `npx hardhat run --network sapphireTestnet ./scripts/user-exists.ts`
+
+#### Change signer in AccountManager
+
+1. Set `accountManagerAddress`, `newSigner` in `scripts/set-signer.ts`
+2. Run `npx hardhat run --network sapphireTestnet ./scripts/set-signer.ts`
+
+#### Get AccountManager data
+
+1. Set `accountManagerAddress` in `scripts/account-manager-data.ts`
+2. Run `npx hardhat run --network sapphireTestnet ./scripts/account-manager-data.ts`
+
+## Helper scripts
+
+#### Output ABI in json format
+1. Run `npx hardhat run ./scripts/helper/convert-abi.ts`
+
+#### Generate signature for gasless registration
+
+1. Set `gasPrice`, `gasLimit`, `timestamp`, `gaslessData` in `scripts/helper/generate-signature-for-register.ts`
+2. Run `npx hardhat run ./scripts/helper/generate-signature-for-register.ts`
+
+## Examples - how to use a keypair generated via AccountManager
+
+#### Transfer ETH (using password)
+
+1. Set `accountManagerAddress`, `usernamePlain`, `password`, `receiverAddress` in `scripts/examples/proxy-call-transfer.ts`
+2. Run `npx hardhat run --network sapphireTestnet ./scripts/examples/proxy-call-transfer.ts`
+
+Note: Make sure you have some ETH on the sender address (if you don't know your sender address, than you can get it by calling `./scripts/user-exists.ts`)
+
+#### Transfer ERC20 (using password)
+
+1. Set `accountManagerAddress`, `usernamePlain`, `password`, `receiverAddress`, `erc20Address`, `erc20Amount` in `scripts/examples/proxy-call-erc20-transfer.ts`
+2. Run `npx hardhat run --network sapphireTestnet ./scripts/examples/proxy-call-erc20-transfer.ts`
+
+Note: 
+- Make sure you have some ETH on the sender address (if you don't know your sender address, than you can get it by calling `./scripts/user-exists.ts`).
+- Make sure you have sufficient ERC20 token on the sender address too.
+- You can either deploy your own erc20 token or use an existing one.
+
+#### Transfer ETH on Amoy, generate transaction on sapphire & execute on Amoy (using password)
+
+1. Set `accountManagerAddress`, `usernamePlain`, `password`, `txRequest` in `scripts/examples/proxy-call-cross-chain.ts`
+2. Run `npx hardhat run --network sapphireTestnet ./scripts/examples/proxy-call-cross-chain.ts`
+
+Note: 
+- Make sure you have some ETH (Amoy) on the sender address (if you don't know your sender address, than you can get it by calling `./scripts/user-exists.ts`).
+- Make sure you set the right nonce in `txRequest` (nonce on Amoy chain)

@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
       gasPrice: 13000000000, // 130gwei
       gas: 2000000,
       accounts: [privateKeyTestnet],
-      // explorer: "https://www.oklink.com/amoy/",
+      explorer: "https://amoy.polygonscan.com/",
     },
   },
   // etherscan: {

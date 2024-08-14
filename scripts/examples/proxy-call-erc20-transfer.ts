@@ -4,32 +4,44 @@ import { VoidSigner } from "ethers";
 
 async function main() {
 
+  // DATA to be set
+  const accountManagerAddress = "0x2a9E1363D590a414C973029d476D4C9fe93d44E2";
+  const usernamePlain = "someUniqueUsername";
+  const password = "0x0000000000000000000000000000000000000000000000000000000000000001";
+  const receiverAddress = "0x5f2B7077a7e5B4fdD97cBb56D9aD02a4f326896d";
+  const erc20Address = "0xf9Ec4CCcb5E467898E57E44b519361af71827B06";
+  const erc20Amount = hre.ethers.parseEther('20');
+  // Data to be set [END]
+
   const signer = (await hre.ethers.getSigners())[0];
-  const contract = await hre.ethers.getContractAt('AccountManager', '0xb1058eD01451B947A836dA3609f88C91804D0663', signer);
+  const contract = await hre.ethers.getContractAt('AccountManager', accountManagerAddress, signer);
 
   const saltOrig = await contract.salt();
   const salt = hre.ethers.toBeArray(saltOrig);
-  const usernameHash = await hashedUsername('mkkalmia2', salt);
+  const usernameHash = await hashedUsername(usernamePlain, salt);
 
-  const password = "0x0000000000000000000000000000000000000000000000000000000000000001";
+  // Get account
+  const accountData = await contract.getAccount(usernameHash);
 
   // Prepare tx
-  const from = '0x593DdF251Aa0279D49EfE97B70A3cAdf39d532e3';
+  const from = accountData[1];
   const voidSigner = new VoidSigner(from, hre.ethers.provider);
 
   // ERC20 transfer
-  const erc20Abi = require("../artifacts/contracts/DummyToken.sol/DummyToken.json").abi;
+  const erc20Abi = [
+    "function transfer(address to, uint256 amount) external"
+  ]
   
   const ierc20 = new ethers.Interface(erc20Abi);
   const erc20_data = ierc20.encodeFunctionData('transfer', [
-    '0x1F21f7A70997e3eC5FbD61C047A26Cdc88e7089B', 
-    hre.ethers.parseEther('20')
+    receiverAddress, 
+    erc20Amount
   ]);
   // ERC20 transfer [END]
 
   const txRequest = await voidSigner.populateTransaction({
     from,
-    to: '0xf9Ec4CCcb5E467898E57E44b519361af71827B06', // DummyToken ADDRESS
+    to: erc20Address, // DummyToken ADDRESS
     gasLimit: 1000000,
     value: 0,
     data: erc20_data
@@ -44,7 +56,7 @@ async function main() {
     }
   }, {});
 
-  const jsonAbi = require("../artifacts/contracts/Account.sol/Account.json").abi;
+  const jsonAbi = require("../../artifacts/contracts/Account.sol/Account.json").abi;
   
   const iface = new ethers.Interface(jsonAbi);
   const in_data = iface.encodeFunctionData('signEIP155', [{
