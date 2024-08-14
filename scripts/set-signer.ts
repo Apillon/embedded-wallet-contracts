@@ -4,21 +4,17 @@ const { pbkdf2Sync } = require("pbkdf2");
 async function main() {
   // DATA to be set
   const accountManagerAddress = "0x2a9E1363D590a414C973029d476D4C9fe93d44E2";
-  const usernamePlain = "someUniqueUsername";
   // Data to be set [END]
 
   const signer = (await hre.ethers.getSigners())[0];
   const contract = await hre.ethers.getContractAt('AccountManager', accountManagerAddress, signer);
 
-  const saltOrig = await contract.salt();
-  const salt = ethers.toBeArray(saltOrig);
-  
-  const username = await hashedUsername(usernamePlain, salt);
-  const res = await contract.userExists(username);
-  console.log(res);
+  const tx = await contract.setSigner('SIGNER_ADDRESS');
 
-  const res2 = await contract.getAccount(username);
-  console.log(res2);
+  await tx.wait();
+
+  const signerAddress = await contract.signer();
+  console.log(`signer: ${signerAddress}`);
 }
 
 main()

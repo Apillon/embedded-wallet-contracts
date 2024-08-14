@@ -9,8 +9,8 @@ const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 async function main() {
 
   // DATA to be set
-  const accountManagerAddress = "0xDc9e8B6894E4754631887486BcF583B6B3158c4E";
-  const usernamePlain = "someUniqueUsername_999";
+  const accountManagerAddress = "0x2a9E1363D590a414C973029d476D4C9fe93d44E2";
+  const usernamePlain = "someUniqueUsername";
   const password = "0x0000000000000000000000000000000000000000000000000000000000000001";
   // Data to be set [END]
 
