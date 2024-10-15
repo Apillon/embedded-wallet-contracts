@@ -25,7 +25,6 @@ import type {
 export interface AccountManagerStorageInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "devAddress"
       | "gaspayingAddress"
       | "hashUsage"
       | "personalization"
@@ -35,10 +34,6 @@ export interface AccountManagerStorageInterface extends Interface {
 
   getEvent(nameOrSignatureOrTopic: "GaslessTransaction"): EventFragment;
 
-  encodeFunctionData(
-    functionFragment: "devAddress",
-    values?: undefined
-  ): string;
   encodeFunctionData(
     functionFragment: "gaspayingAddress",
     values?: undefined
@@ -54,7 +49,6 @@ export interface AccountManagerStorageInterface extends Interface {
   encodeFunctionData(functionFragment: "salt", values?: undefined): string;
   encodeFunctionData(functionFragment: "signer", values?: undefined): string;
 
-  decodeFunctionResult(functionFragment: "devAddress", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "gaspayingAddress",
     data: BytesLike
@@ -133,8 +127,6 @@ export interface AccountManagerStorage extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  devAddress: TypedContractMethod<[], [string], "view">;
-
   gaspayingAddress: TypedContractMethod<[], [string], "view">;
 
   hashUsage: TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
@@ -147,9 +139,6 @@ export interface AccountManagerStorage extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
-  getFunction(
-    nameOrSignature: "devAddress"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "gaspayingAddress"
   ): TypedContractMethod<[], [string], "view">;
