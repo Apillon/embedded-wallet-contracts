@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { IAccessControl } from "./IAccessControl";
+export type { Ownable } from "./Ownable";

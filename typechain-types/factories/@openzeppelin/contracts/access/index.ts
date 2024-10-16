@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export { IAccessControl__factory } from "./IAccessControl__factory";
+export { Ownable__factory } from "./Ownable__factory";
