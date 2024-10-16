@@ -2,9 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {Sapphire} from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 import {EthereumUtils} from "@oasisprotocol/sapphire-contracts/contracts/EthereumUtils.sol";
@@ -86,11 +88,6 @@ contract AccountManagerStorage {
     address public signer;
 
     /**
-     * @dev address with dev privileges
-     */
-    address public devAddress;
-
-    /**
      * @dev hash usage mapping to prevent reuse of same hash multiple times
      */
     mapping(bytes32 => bool) public hashUsage;
@@ -98,12 +95,22 @@ contract AccountManagerStorage {
     event GaslessTransaction(bytes32 indexed dataHash, bytes32 indexed hashedUsername, address indexed publicAddress);
 }
 
-contract AccountManager is AccountManagerStorage
+contract AccountManager is AccountManagerStorage,
+    Initializable, 
+    UUPSUpgradeable,
+    AccessControlUpgradeable
 {
-    constructor (address _signer)
-        payable
-    {
-        devAddress = msg.sender;
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor()  {
+        _disableInitializers();
+    }
+
+    // Initializer instead of constructor
+    function initialize(
+        address _signer
+    ) public payable initializer {
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
 
         require(_signer != address(0), "Zero address not allowed");
         signer = _signer;
@@ -118,10 +125,15 @@ contract AccountManager is AccountManagerStorage
 
         personalization = sha256(abi.encodePacked(block.chainid, address(this), salt));
 
+        // Grant the deployer the default admin role: they can grant and revoke any roles
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
         if(msg.value > 0) {
             payable(gaspayingAddress).transfer(msg.value);
         }
     }
+
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /**
      * @dev Get account data for username
@@ -605,8 +617,7 @@ contract AccountManager is AccountManagerStorage
      * 
      * @param _signer Signer address
      */
-    function setSigner(address _signer) external {
-        require(msg.sender == devAddress, "Unauthorized");
+    function setSigner(address _signer) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_signer != address(0), "Zero address not allowed");
         signer = _signer;
     }
