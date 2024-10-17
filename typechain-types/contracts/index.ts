@@ -7,5 +7,7 @@ import type * as accountManagerSol from "./AccountManager.sol";
 export type { accountManagerSol };
 import type * as lib from "./lib";
 export type { lib };
+import type * as proxy from "./proxy";
+export type { proxy };
 import type * as test from "./test";
 export type { test };

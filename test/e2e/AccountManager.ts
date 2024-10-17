@@ -31,7 +31,7 @@ describe("AccountManager", function() {
 
   beforeEach(async () => {
     [ owner, account1, account2, signer ] = await ethers.getSigners();
-
+    
     const helpFactory = await hre.ethers.getContractFactory("TestHelper");
     HELPER = await helpFactory.deploy();
     await HELPER.waitForDeployment();
@@ -40,9 +40,22 @@ describe("AccountManager", function() {
     const curveLibrary = await curveFactory.deploy();
     await curveLibrary.waitForDeployment();
 
+    const accountFactoryFactory = await hre.ethers.getContractFactory("AccountFactory");
+    const accountFactory = await accountFactoryFactory.deploy();
+    await accountFactory.waitForDeployment();
+
     const contractFactory = await ethers.getContractFactory("AccountManager", {libraries: {SECP256R1Precompile: await curveLibrary.getAddress()}});
-    WA = await contractFactory.deploy(signer.address);
-    await WA.waitForDeployment();
+    const proxyFactory = await ethers.getContractFactory('AccountManagerProxy');
+  
+    const impl = await contractFactory.deploy();
+    await impl.waitForDeployment();
+    const WAProxy = await proxyFactory.deploy(
+      await impl.getAddress(),
+      contractFactory.interface.encodeFunctionData('initialize', [await accountFactory.getAddress(), signer.address]),
+    );
+    await WAProxy.waitForDeployment();
+
+    WA = await ethers.getContractAt("AccountManager", await WAProxy.getAddress(), owner);
 
     gaspayingAddress = await WA.gaspayingAddress();
     await owner.sendTransaction({

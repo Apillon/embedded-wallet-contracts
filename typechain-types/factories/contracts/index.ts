@@ -4,4 +4,5 @@
 export * as accountSol from "./Account.sol";
 export * as accountManagerSol from "./AccountManager.sol";
 export * as lib from "./lib";
+export * as proxy from "./proxy";
 export * as test from "./test";

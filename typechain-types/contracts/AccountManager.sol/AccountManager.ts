@@ -115,28 +115,54 @@ export declare namespace MakeJSON {
 export interface AccountManagerInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "DEFAULT_ADMIN_ROLE"
+      | "UPGRADE_INTERFACE_VERSION"
       | "createAccount"
       | "credentialIdsByUsername"
-      | "devAddress"
       | "encryptedTx"
       | "gaspayingAddress"
       | "generateGaslessTx"
       | "getAccount"
+      | "getRoleAdmin"
+      | "grantRole"
+      | "hasRole"
       | "hashUsage"
+      | "initialize"
       | "manageCredential"
       | "manageCredentialPassword"
       | "personalization"
+      | "proxiableUUID"
       | "proxyView"
       | "proxyViewPassword"
+      | "renounceRole"
+      | "revokeRole"
       | "salt"
       | "setSigner"
       | "signer"
+      | "supportsInterface"
+      | "upgradeToAndCall"
       | "userExists"
       | "validateSignature"
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "GaslessTransaction"): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic:
+      | "GaslessTransaction"
+      | "Initialized"
+      | "RoleAdminChanged"
+      | "RoleGranted"
+      | "RoleRevoked"
+      | "Upgraded"
+  ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "DEFAULT_ADMIN_ROLE",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "createAccount",
     values: [AccountManager.NewAccountStruct]
@@ -144,10 +170,6 @@ export interface AccountManagerInterface extends Interface {
   encodeFunctionData(
     functionFragment: "credentialIdsByUsername",
     values: [BytesLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "devAddress",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "encryptedTx",
@@ -173,8 +195,24 @@ export interface AccountManagerInterface extends Interface {
     values: [BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "getRoleAdmin",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "grantRole",
+    values: [BytesLike, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "hasRole",
+    values: [BytesLike, AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "hashUsage",
     values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "initialize",
+    values: [AddressLike, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "manageCredential",
@@ -189,6 +227,10 @@ export interface AccountManagerInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "proxiableUUID",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "proxyView",
     values: [BytesLike, AuthenticatorResponseStruct, BytesLike]
   ): string;
@@ -196,12 +238,28 @@ export interface AccountManagerInterface extends Interface {
     functionFragment: "proxyViewPassword",
     values: [BytesLike, BytesLike, BytesLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "renounceRole",
+    values: [BytesLike, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "revokeRole",
+    values: [BytesLike, AddressLike]
+  ): string;
   encodeFunctionData(functionFragment: "salt", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "setSigner",
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "signer", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "supportsInterface",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "upgradeToAndCall",
+    values: [AddressLike, BytesLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "userExists",
     values: [BytesLike]
@@ -212,6 +270,14 @@ export interface AccountManagerInterface extends Interface {
   ): string;
 
   decodeFunctionResult(
+    functionFragment: "DEFAULT_ADMIN_ROLE",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "createAccount",
     data: BytesLike
   ): Result;
@@ -219,7 +285,6 @@ export interface AccountManagerInterface extends Interface {
     functionFragment: "credentialIdsByUsername",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "devAddress", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "encryptedTx",
     data: BytesLike
@@ -233,7 +298,14 @@ export interface AccountManagerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getAccount", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getRoleAdmin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "grantRole", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "hasRole", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "hashUsage", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "manageCredential",
     data: BytesLike
@@ -246,14 +318,31 @@ export interface AccountManagerInterface extends Interface {
     functionFragment: "personalization",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "proxiableUUID",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "proxyView", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "proxyViewPassword",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "renounceRole",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "salt", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "setSigner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "signer", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "supportsInterface",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "upgradeToAndCall",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "userExists", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "validateSignature",
@@ -276,6 +365,88 @@ export namespace GaslessTransactionEvent {
     dataHash: string;
     hashedUsername: string;
     publicAddress: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace InitializedEvent {
+  export type InputTuple = [version: BigNumberish];
+  export type OutputTuple = [version: bigint];
+  export interface OutputObject {
+    version: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleAdminChangedEvent {
+  export type InputTuple = [
+    role: BytesLike,
+    previousAdminRole: BytesLike,
+    newAdminRole: BytesLike
+  ];
+  export type OutputTuple = [
+    role: string,
+    previousAdminRole: string,
+    newAdminRole: string
+  ];
+  export interface OutputObject {
+    role: string;
+    previousAdminRole: string;
+    newAdminRole: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleGrantedEvent {
+  export type InputTuple = [
+    role: BytesLike,
+    account: AddressLike,
+    sender: AddressLike
+  ];
+  export type OutputTuple = [role: string, account: string, sender: string];
+  export interface OutputObject {
+    role: string;
+    account: string;
+    sender: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleRevokedEvent {
+  export type InputTuple = [
+    role: BytesLike,
+    account: AddressLike,
+    sender: AddressLike
+  ];
+  export type OutputTuple = [role: string, account: string, sender: string];
+  export interface OutputObject {
+    role: string;
+    account: string;
+    sender: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace UpgradedEvent {
+  export type InputTuple = [implementation: AddressLike];
+  export type OutputTuple = [implementation: string];
+  export interface OutputObject {
+    implementation: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -326,6 +497,10 @@ export interface AccountManager extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  DEFAULT_ADMIN_ROLE: TypedContractMethod<[], [string], "view">;
+
+  UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
+
   createAccount: TypedContractMethod<
     [args: AccountManager.NewAccountStruct],
     [void],
@@ -337,8 +512,6 @@ export interface AccountManager extends BaseContract {
     [string[]],
     "view"
   >;
-
-  devAddress: TypedContractMethod<[], [string], "view">;
 
   encryptedTx: TypedContractMethod<
     [
@@ -372,7 +545,27 @@ export interface AccountManager extends BaseContract {
     "view"
   >;
 
+  getRoleAdmin: TypedContractMethod<[role: BytesLike], [string], "view">;
+
+  grantRole: TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  hasRole: TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [boolean],
+    "view"
+  >;
+
   hashUsage: TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
+
+  initialize: TypedContractMethod<
+    [_accountFactory: AddressLike, _signer: AddressLike],
+    [void],
+    "payable"
+  >;
 
   manageCredential: TypedContractMethod<
     [args: AccountManager.ManageCredStruct],
@@ -387,6 +580,8 @@ export interface AccountManager extends BaseContract {
   >;
 
   personalization: TypedContractMethod<[], [string], "view">;
+
+  proxiableUUID: TypedContractMethod<[], [string], "view">;
 
   proxyView: TypedContractMethod<
     [
@@ -404,9 +599,33 @@ export interface AccountManager extends BaseContract {
     "view"
   >;
 
+  renounceRole: TypedContractMethod<
+    [role: BytesLike, callerConfirmation: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  revokeRole: TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   salt: TypedContractMethod<[], [string], "view">;
 
   setSigner: TypedContractMethod<[_signer: AddressLike], [void], "nonpayable">;
+
+  supportsInterface: TypedContractMethod<
+    [interfaceId: BytesLike],
+    [boolean],
+    "view"
+  >;
+
+  upgradeToAndCall: TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
 
   userExists: TypedContractMethod<[in_username: BytesLike], [boolean], "view">;
 
@@ -427,6 +646,12 @@ export interface AccountManager extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "DEFAULT_ADMIN_ROLE"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "UPGRADE_INTERFACE_VERSION"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "createAccount"
   ): TypedContractMethod<
     [args: AccountManager.NewAccountStruct],
@@ -436,9 +661,6 @@ export interface AccountManager extends BaseContract {
   getFunction(
     nameOrSignature: "credentialIdsByUsername"
   ): TypedContractMethod<[in_hashedUsername: BytesLike], [string[]], "view">;
-  getFunction(
-    nameOrSignature: "devAddress"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "encryptedTx"
   ): TypedContractMethod<
@@ -476,8 +698,32 @@ export interface AccountManager extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "getRoleAdmin"
+  ): TypedContractMethod<[role: BytesLike], [string], "view">;
+  getFunction(
+    nameOrSignature: "grantRole"
+  ): TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "hasRole"
+  ): TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [boolean],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "hashUsage"
   ): TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "initialize"
+  ): TypedContractMethod<
+    [_accountFactory: AddressLike, _signer: AddressLike],
+    [void],
+    "payable"
+  >;
   getFunction(
     nameOrSignature: "manageCredential"
   ): TypedContractMethod<
@@ -494,6 +740,9 @@ export interface AccountManager extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "personalization"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "proxiableUUID"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "proxyView"
@@ -514,6 +763,20 @@ export interface AccountManager extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "renounceRole"
+  ): TypedContractMethod<
+    [role: BytesLike, callerConfirmation: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "revokeRole"
+  ): TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "salt"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -522,6 +785,16 @@ export interface AccountManager extends BaseContract {
   getFunction(
     nameOrSignature: "signer"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "supportsInterface"
+  ): TypedContractMethod<[interfaceId: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "upgradeToAndCall"
+  ): TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
   getFunction(
     nameOrSignature: "userExists"
   ): TypedContractMethod<[in_username: BytesLike], [boolean], "view">;
@@ -546,6 +819,41 @@ export interface AccountManager extends BaseContract {
     GaslessTransactionEvent.OutputTuple,
     GaslessTransactionEvent.OutputObject
   >;
+  getEvent(
+    key: "Initialized"
+  ): TypedContractEvent<
+    InitializedEvent.InputTuple,
+    InitializedEvent.OutputTuple,
+    InitializedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoleAdminChanged"
+  ): TypedContractEvent<
+    RoleAdminChangedEvent.InputTuple,
+    RoleAdminChangedEvent.OutputTuple,
+    RoleAdminChangedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoleGranted"
+  ): TypedContractEvent<
+    RoleGrantedEvent.InputTuple,
+    RoleGrantedEvent.OutputTuple,
+    RoleGrantedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoleRevoked"
+  ): TypedContractEvent<
+    RoleRevokedEvent.InputTuple,
+    RoleRevokedEvent.OutputTuple,
+    RoleRevokedEvent.OutputObject
+  >;
+  getEvent(
+    key: "Upgraded"
+  ): TypedContractEvent<
+    UpgradedEvent.InputTuple,
+    UpgradedEvent.OutputTuple,
+    UpgradedEvent.OutputObject
+  >;
 
   filters: {
     "GaslessTransaction(bytes32,bytes32,address)": TypedContractEvent<
@@ -557,6 +865,61 @@ export interface AccountManager extends BaseContract {
       GaslessTransactionEvent.InputTuple,
       GaslessTransactionEvent.OutputTuple,
       GaslessTransactionEvent.OutputObject
+    >;
+
+    "Initialized(uint64)": TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+    Initialized: TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+
+    "RoleAdminChanged(bytes32,bytes32,bytes32)": TypedContractEvent<
+      RoleAdminChangedEvent.InputTuple,
+      RoleAdminChangedEvent.OutputTuple,
+      RoleAdminChangedEvent.OutputObject
+    >;
+    RoleAdminChanged: TypedContractEvent<
+      RoleAdminChangedEvent.InputTuple,
+      RoleAdminChangedEvent.OutputTuple,
+      RoleAdminChangedEvent.OutputObject
+    >;
+
+    "RoleGranted(bytes32,address,address)": TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
+    >;
+    RoleGranted: TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
+    >;
+
+    "RoleRevoked(bytes32,address,address)": TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
+    >;
+    RoleRevoked: TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
+    >;
+
+    "Upgraded(address)": TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
+    >;
+    Upgraded: TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
     >;
   };
 }

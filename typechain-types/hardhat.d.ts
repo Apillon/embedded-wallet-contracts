@@ -18,13 +18,61 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.EthereumUtils__factory>;
     getContractFactory(
-      name: "Ownable",
+      name: "AccessControlUpgradeable",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Ownable__factory>;
+    ): Promise<Contracts.AccessControlUpgradeable__factory>;
+    getContractFactory(
+      name: "Initializable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Initializable__factory>;
+    getContractFactory(
+      name: "UUPSUpgradeable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.UUPSUpgradeable__factory>;
+    getContractFactory(
+      name: "ContextUpgradeable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ContextUpgradeable__factory>;
+    getContractFactory(
+      name: "ERC165Upgradeable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC165Upgradeable__factory>;
+    getContractFactory(
+      name: "IAccessControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAccessControl__factory>;
+    getContractFactory(
+      name: "IERC1822Proxiable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC1822Proxiable__factory>;
+    getContractFactory(
+      name: "IBeacon",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IBeacon__factory>;
+    getContractFactory(
+      name: "ERC1967Proxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC1967Proxy__factory>;
+    getContractFactory(
+      name: "ERC1967Utils",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC1967Utils__factory>;
+    getContractFactory(
+      name: "Proxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Proxy__factory>;
+    getContractFactory(
+      name: "Address",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Address__factory>;
     getContractFactory(
       name: "ECDSA",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ECDSA__factory>;
+    getContractFactory(
+      name: "IERC165",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
       name: "Math",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -50,6 +98,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.AccountManagerStorage__factory>;
     getContractFactory(
+      name: "IAccountFactory",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAccountFactory__factory>;
+    getContractFactory(
       name: "JWT",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.JWT__factory>;
@@ -65,6 +117,10 @@ declare module "hardhat/types/runtime" {
       name: "SHA1",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SHA1__factory>;
+    getContractFactory(
+      name: "AccountManagerProxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.AccountManagerProxy__factory>;
     getContractFactory(
       name: "TestAccount",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -112,15 +168,75 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.EthereumUtils>;
     getContractAt(
-      name: "Ownable",
+      name: "AccessControlUpgradeable",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.Ownable>;
+    ): Promise<Contracts.AccessControlUpgradeable>;
+    getContractAt(
+      name: "Initializable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Initializable>;
+    getContractAt(
+      name: "UUPSUpgradeable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.UUPSUpgradeable>;
+    getContractAt(
+      name: "ContextUpgradeable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ContextUpgradeable>;
+    getContractAt(
+      name: "ERC165Upgradeable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC165Upgradeable>;
+    getContractAt(
+      name: "IAccessControl",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAccessControl>;
+    getContractAt(
+      name: "IERC1822Proxiable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC1822Proxiable>;
+    getContractAt(
+      name: "IBeacon",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IBeacon>;
+    getContractAt(
+      name: "ERC1967Proxy",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC1967Proxy>;
+    getContractAt(
+      name: "ERC1967Utils",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC1967Utils>;
+    getContractAt(
+      name: "Proxy",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Proxy>;
+    getContractAt(
+      name: "Address",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Address>;
     getContractAt(
       name: "ECDSA",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ECDSA>;
+    getContractAt(
+      name: "IERC165",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC165>;
     getContractAt(
       name: "Math",
       address: string | ethers.Addressable,
@@ -152,6 +268,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.AccountManagerStorage>;
     getContractAt(
+      name: "IAccountFactory",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAccountFactory>;
+    getContractAt(
       name: "JWT",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -171,6 +292,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.SHA1>;
+    getContractAt(
+      name: "AccountManagerProxy",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.AccountManagerProxy>;
     getContractAt(
       name: "TestAccount",
       address: string | ethers.Addressable,
@@ -227,13 +353,61 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.EthereumUtils>;
     deployContract(
-      name: "Ownable",
+      name: "AccessControlUpgradeable",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Ownable>;
+    ): Promise<Contracts.AccessControlUpgradeable>;
+    deployContract(
+      name: "Initializable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Initializable>;
+    deployContract(
+      name: "UUPSUpgradeable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.UUPSUpgradeable>;
+    deployContract(
+      name: "ContextUpgradeable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ContextUpgradeable>;
+    deployContract(
+      name: "ERC165Upgradeable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC165Upgradeable>;
+    deployContract(
+      name: "IAccessControl",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAccessControl>;
+    deployContract(
+      name: "IERC1822Proxiable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC1822Proxiable>;
+    deployContract(
+      name: "IBeacon",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IBeacon>;
+    deployContract(
+      name: "ERC1967Proxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC1967Proxy>;
+    deployContract(
+      name: "ERC1967Utils",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC1967Utils>;
+    deployContract(
+      name: "Proxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Proxy>;
+    deployContract(
+      name: "Address",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Address>;
     deployContract(
       name: "ECDSA",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ECDSA>;
+    deployContract(
+      name: "IERC165",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC165>;
     deployContract(
       name: "Math",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -259,6 +433,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.AccountManagerStorage>;
     deployContract(
+      name: "IAccountFactory",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAccountFactory>;
+    deployContract(
       name: "JWT",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.JWT>;
@@ -274,6 +452,10 @@ declare module "hardhat/types/runtime" {
       name: "SHA1",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SHA1>;
+    deployContract(
+      name: "AccountManagerProxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.AccountManagerProxy>;
     deployContract(
       name: "TestAccount",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -321,15 +503,75 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.EthereumUtils>;
     deployContract(
-      name: "Ownable",
+      name: "AccessControlUpgradeable",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Ownable>;
+    ): Promise<Contracts.AccessControlUpgradeable>;
+    deployContract(
+      name: "Initializable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Initializable>;
+    deployContract(
+      name: "UUPSUpgradeable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.UUPSUpgradeable>;
+    deployContract(
+      name: "ContextUpgradeable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ContextUpgradeable>;
+    deployContract(
+      name: "ERC165Upgradeable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC165Upgradeable>;
+    deployContract(
+      name: "IAccessControl",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAccessControl>;
+    deployContract(
+      name: "IERC1822Proxiable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC1822Proxiable>;
+    deployContract(
+      name: "IBeacon",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IBeacon>;
+    deployContract(
+      name: "ERC1967Proxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC1967Proxy>;
+    deployContract(
+      name: "ERC1967Utils",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC1967Utils>;
+    deployContract(
+      name: "Proxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Proxy>;
+    deployContract(
+      name: "Address",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Address>;
     deployContract(
       name: "ECDSA",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ECDSA>;
+    deployContract(
+      name: "IERC165",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC165>;
     deployContract(
       name: "Math",
       args: any[],
@@ -361,6 +603,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.AccountManagerStorage>;
     deployContract(
+      name: "IAccountFactory",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAccountFactory>;
+    deployContract(
       name: "JWT",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -380,6 +627,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SHA1>;
+    deployContract(
+      name: "AccountManagerProxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.AccountManagerProxy>;
     deployContract(
       name: "TestAccount",
       args: any[],

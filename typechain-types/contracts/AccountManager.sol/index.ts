@@ -3,3 +3,4 @@
 /* eslint-disable */
 export type { AccountManager } from "./AccountManager";
 export type { AccountManagerStorage } from "./AccountManagerStorage";
+export type { IAccountFactory } from "./IAccountFactory";
