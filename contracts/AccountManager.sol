@@ -12,8 +12,12 @@ import {Sapphire} from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol
 import {EthereumUtils} from "@oasisprotocol/sapphire-contracts/contracts/EthereumUtils.sol";
 import {EIP155Signer} from "@oasisprotocol/sapphire-contracts/contracts/EIP155Signer.sol";
 
-import {Account,AccountFactory} from "./Account.sol";
+import {Account} from "./Account.sol";
 import {WebAuthN,CosePublicKey,AuthenticatorResponse} from "./lib/WebAuthN.sol";
+
+interface IAccountFactory {
+    function clone (address starterOwner) external returns (Account acct);
+}
 
 struct UserCredential {
     uint256[2] pubkey;
@@ -40,7 +44,7 @@ enum CredentialAction {
 
 contract AccountManagerStorage {
 
-    AccountFactory internal accountFactory;
+    IAccountFactory internal accountFactory;
 
     /**
      * @dev user account mapping
@@ -95,11 +99,13 @@ contract AccountManagerStorage {
     event GaslessTransaction(bytes32 indexed dataHash, bytes32 indexed hashedUsername, address indexed publicAddress);
 }
 
+/// @custom:oz-upgrades-unsafe-allow external-library-linking
 contract AccountManager is AccountManagerStorage,
-    Initializable, 
+    Initializable,
     UUPSUpgradeable,
     AccessControlUpgradeable
 {
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor()  {
         _disableInitializers();
@@ -107,6 +113,7 @@ contract AccountManager is AccountManagerStorage,
 
     // Initializer instead of constructor
     function initialize(
+        address _accountFactory,
         address _signer
     ) public payable initializer {
         __AccessControl_init();
@@ -121,7 +128,9 @@ contract AccountManager is AccountManagerStorage,
 
         (gaspayingAddress, gaspayingSecret) = EthereumUtils.generateKeypair();
 
-        accountFactory = new AccountFactory();
+        // accountFactory = new AccountFactory();
+        require(_accountFactory != address(0), "Zero address not allowed");
+        accountFactory = IAccountFactory(_accountFactory);
 
         personalization = sha256(abi.encodePacked(block.chainid, address(this), salt));
 
@@ -363,7 +372,7 @@ contract AccountManager is AccountManagerStorage,
             }
         }
 
-        require(credIdx < credListLength, "credential index not found");
+        require(credIdx < credListLength, "CINF");
 
         if (credIdx < lastIdx) {
             // Swap last item to credIdx
@@ -460,15 +469,15 @@ contract AccountManager is AccountManagerStorage,
 
         require( 
             user.username != bytes32(0),
-            "Invalid username"
+            "IU"
         );
         require(
             user.password != bytes32(0),
-            "Invalid password"    
+            "IP"    
         );
         require(
             keccak256(abi.encodePacked(user.password, in_data)) == in_digest,
-            "in_digest verification failed"
+            "in_digest VF"
         );
 
         return internal_proxyView(user, in_data);

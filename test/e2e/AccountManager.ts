@@ -30,9 +30,8 @@ describe("AccountManager", function() {
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
   beforeEach(async () => {
-    console.log(await ethers.getSigners());
-    // [ owner, account1, account2, signer ] = await ethers.getSigners();
-    /*
+    [ owner, account1, account2, signer ] = await ethers.getSigners();
+    
     const helpFactory = await hre.ethers.getContractFactory("TestHelper");
     HELPER = await helpFactory.deploy();
     await HELPER.waitForDeployment();
@@ -41,9 +40,22 @@ describe("AccountManager", function() {
     const curveLibrary = await curveFactory.deploy();
     await curveLibrary.waitForDeployment();
 
+    const accountFactoryFactory = await hre.ethers.getContractFactory("AccountFactory");
+    const accountFactory = await accountFactoryFactory.deploy();
+    await accountFactory.waitForDeployment();
+
     const contractFactory = await ethers.getContractFactory("AccountManager", {libraries: {SECP256R1Precompile: await curveLibrary.getAddress()}});
-    WA = await contractFactory.deploy(signer.address);
-    await WA.waitForDeployment();
+    const proxyFactory = await ethers.getContractFactory('AccountManagerProxy');
+  
+    const impl = await contractFactory.deploy();
+    await impl.waitForDeployment();
+    const WAProxy = await proxyFactory.deploy(
+      await impl.getAddress(),
+      contractFactory.interface.encodeFunctionData('initialize', [await accountFactory.getAddress(), signer.address]),
+    );
+    await WAProxy.waitForDeployment();
+
+    WA = await ethers.getContractAt("AccountManager", await WAProxy.getAddress(), owner);
 
     gaspayingAddress = await WA.gaspayingAddress();
     await owner.sendTransaction({
@@ -52,11 +64,9 @@ describe("AccountManager", function() {
     });
 
     SALT = ethers.toBeArray(await WA.salt());
-    */
   });
 
-  it.only("Sign random string with new account", async function() {
-    /*
+  it("Sign random string with new account", async function() {
     const username = hashedUsername("testuser");
     const accountData = await createAccount(username, SIMPLE_PASSWORD);
 
@@ -77,7 +87,7 @@ describe("AccountManager", function() {
     const [sigRes] = iface.decodeFunctionResult('sign', resp).toArray();
 
     const recoveredAddress = ethers.recoverAddress(RANDOM_STRING, {r: sigRes[0], s: sigRes[1], v: sigRes[2]});
-    expect(recoveredAddress).to.equal(accountData.publicKey);*/
+    expect(recoveredAddress).to.equal(accountData.publicKey);
   });
 
   it("Export PK of new account", async function() {

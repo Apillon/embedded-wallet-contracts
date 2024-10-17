@@ -212,7 +212,7 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "initialize",
-    values: [AddressLike]
+    values: [AddressLike, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "manageCredential",
@@ -561,7 +561,11 @@ export interface AccountManager extends BaseContract {
 
   hashUsage: TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
 
-  initialize: TypedContractMethod<[_signer: AddressLike], [void], "payable">;
+  initialize: TypedContractMethod<
+    [_accountFactory: AddressLike, _signer: AddressLike],
+    [void],
+    "payable"
+  >;
 
   manageCredential: TypedContractMethod<
     [args: AccountManager.ManageCredStruct],
@@ -715,7 +719,11 @@ export interface AccountManager extends BaseContract {
   ): TypedContractMethod<[arg0: BytesLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "initialize"
-  ): TypedContractMethod<[_signer: AddressLike], [void], "payable">;
+  ): TypedContractMethod<
+    [_accountFactory: AddressLike, _signer: AddressLike],
+    [void],
+    "payable"
+  >;
   getFunction(
     nameOrSignature: "manageCredential"
   ): TypedContractMethod<

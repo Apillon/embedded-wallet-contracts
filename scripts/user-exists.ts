@@ -3,7 +3,7 @@ const { pbkdf2Sync } = require("pbkdf2");
 
 async function main() {
   // DATA to be set
-  const accountManagerAddress = "0x2a9E1363D590a414C973029d476D4C9fe93d44E2";
+  const accountManagerAddress = "0xe1D85Aa3449690185371193DD46D60c3DA9FC709";
   const usernamePlain = "someUniqueUsername";
   // Data to be set [END]
 
