@@ -25,6 +25,10 @@ describe("AccountManager", function() {
   const SIMPLE_PASSWORD = "0x0000000000000000000000000000000000000000000000000000000000000001";
   const WRONG_PASSWORD  = "0x0000000000000000000000000000000000000000000000000000009999999999";
 
+  const platform = "google";
+  const socialId = "googleUniqueId123";
+  const email = "user@example.com";
+
   const RANDOM_STRING  = "0x000000000000000000000000000000000000000000000000000000000000DEAD";
 
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
@@ -1069,6 +1073,365 @@ describe("AccountManager", function() {
     credList = await WA.credentialIdsByUsername(username);
     expect(credList.length).to.equal(1);
     expect(credList[0]).to.equal(keyPair.credentialId);
+  });
+
+  it("Should add, verify and remove email authentication successfully", async function () {
+    const usernamePlain = "plain_user";
+    const emailToAdd = "plainuser@example.com";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Add email
+    const addEmailTx = await WA.addEmail(userData.hashedUsername, emailToAdd);
+    await addEmailTx.wait();
+  
+    // Check email added
+    const userAfterAddEmail = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterAddEmail.emailCredential.emailHash).to.equal(
+      ethers.utils.keccak256(ethers.utils.toUtf8Bytes(emailToAdd))
+    );
+    expect(userAfterAddEmail.emailCredential.verified).to.equal(false);
+  
+    // Generate signature for verification
+    const message = ethers.utils.keccak256(
+      ethers.utils.toUtf8Bytes(
+        "verify-email" +
+          ethers.utils.hexlify(userData.hashedUsername) +
+          emailToAdd
+      )
+    );
+    const signature = await signer.signMessage(ethers.utils.arrayify(message));
+  
+    // Verify email
+    const verifyEmailTx = await WA.verifyEmail(
+      userData.hashedUsername,
+      emailToAdd,
+      signature
+    );
+    await verifyEmailTx.wait();
+  
+    // Check email verified
+    const userAfterVerifyEmail = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterVerifyEmail.emailCredential.verified).to.equal(true);
+  
+    // Remove email
+    const removeEmailTx = await WA.removeEmail(userData.hashedUsername);
+    await removeEmailTx.wait();
+  
+    // Check email removed
+    const userAfterRemoveEmail = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterRemoveEmail.emailCredential.emailHash).to.equal(
+      ethers.constants.HashZero
+    );
+    expect(userAfterRemoveEmail.emailCredential.verified).to.equal(false);
+  });
+  
+  it("Should add, verify and remove social recovery successfully", async function () {
+    const usernamePlain = "social_user";
+    const platform = "twitter";
+    const socialId = "twitter_unique_id_123";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Add social recovery
+    const addSocialTx = await WA.addSocial(
+      userData.hashedUsername,
+      platform,
+      socialId
+    );
+    await addSocialTx.wait();
+  
+    // Check social recovery added
+    const userAfterAddSocial = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterAddSocial.socialCredentials.length).to.equal(1);
+    expect(userAfterAddSocial.socialCredentials[0].platformHash).to.equal(
+      ethers.utils.keccak256(ethers.utils.toUtf8Bytes(platform))
+    );
+    expect(userAfterAddSocial.socialCredentials[0].socialIdHash).to.equal(
+      ethers.utils.keccak256(ethers.utils.toUtf8Bytes(socialId))
+    );
+    expect(userAfterAddSocial.socialCredentials[0].verified).to.equal(false);
+  
+    // Generate signature for verification
+    const message = ethers.utils.keccak256(
+      ethers.utils.toUtf8Bytes(
+        "verify-social" +
+          ethers.utils.hexlify(userData.hashedUsername) +
+          platform +
+          socialId
+      )
+    );
+    const signature = await signer.signMessage(ethers.utils.arrayify(message));
+  
+    // Verify social recovery
+    const verifySocialTx = await WA.verifySocial(
+      userData.hashedUsername,
+      platform,
+      socialId,
+      signature
+    );
+    await verifySocialTx.wait();
+  
+    // Check social recovery verified
+    const userAfterVerifySocial = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterVerifySocial.socialCredentials[0].verified).to.equal(true);
+  
+    // Remove social recovery
+    const removeSocialTx = await WA.removeSocial(
+      userData.hashedUsername,
+      platform,
+      socialId
+    );
+    await removeSocialTx.wait();
+  
+    // Check social recovery removed
+    const userAfterRemoveSocial = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterRemoveSocial.socialCredentials.length).to.equal(0);
+  });
+
+  it("Should restrict email and social recovery management to admins only", async function () {
+    const usernamePlain = "adminuser";
+    const emailToAdd = "adminuser@example.com";
+    const platform = "linkedin";
+    const socialId = "linkedin_id_123";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Get a non-admin signer (account2)
+    const accountManagerNonAdmin = WA.connect(account2);
+  
+    // Attempt to add email as non-admin
+    await expect(
+      accountManagerNonAdmin.addEmail(userData.hashedUsername, emailToAdd)
+    ).to.be.revertedWith(
+      `AccessControl: account ${await account2.getAddress()} is missing role ${ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes("DEFAULT_ADMIN_ROLE")
+      )}`
+    );
+  
+    // Attempt to remove email as non-admin
+    await expect(
+      accountManagerNonAdmin.removeEmail(userData.hashedUsername)
+    ).to.be.revertedWith(
+      `AccessControl: account ${await account2.getAddress()} is missing role ${ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes("DEFAULT_ADMIN_ROLE")
+      )}`
+    );
+  
+    // Attempt to add social recovery as non-admin
+    await expect(
+      accountManagerNonAdmin.addSocial(
+        userData.hashedUsername,
+        platform,
+        socialId
+      )
+    ).to.be.revertedWith(
+      `AccessControl: account ${await account2.getAddress()} is missing role ${ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes("DEFAULT_ADMIN_ROLE")
+      )}`
+    );
+  
+    // Attempt to remove social recovery as non-admin
+    await expect(
+      accountManagerNonAdmin.removeSocial(
+        userData.hashedUsername,
+        platform,
+        socialId
+      )
+    ).to.be.revertedWith(
+      `AccessControl: account ${await account2.getAddress()} is missing role ${ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes("DEFAULT_ADMIN_ROLE")
+      )}`
+    );
+  });
+  
+  it("Should fail to verify email with invalid signature", async function () {
+    const usernamePlain = "invalidsiguser";
+    const emailToAdd = "invalidsig@example.com";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Add email
+    const addEmailTx = await WA.addEmail(userData.hashedUsername, emailToAdd);
+    await addEmailTx.wait();
+  
+    // Generate invalid signature (wrong signer)
+    const message = ethers.utils.keccak256(
+      ethers.utils.toUtf8Bytes(
+        "verify-email" +
+          ethers.utils.hexlify(userData.hashedUsername) +
+          emailToAdd
+      )
+    );
+    const signature = await owner.signMessage(ethers.utils.arrayify(message)); // 'owner' is not the designated 'signer'
+  
+    // Attempt to verify email with invalid signature
+    await expect(
+      WA.verifyEmail(userData.hashedUsername, emailToAdd, signature)
+    ).to.be.revertedWith("verifyEmail: invalid signature");
+  });
+  
+  it("Should prevent adding duplicate email", async function () {
+    const usernamePlain = "duplicateemailuser";
+    const emailToAdd = "duplicate@example.com";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Add email first time
+    const addEmailTx = await WA.addEmail(userData.hashedUsername, emailToAdd);
+    await addEmailTx.wait();
+  
+    // Attempt to add the same email again
+    await expect(
+      WA.addEmail(userData.hashedUsername, emailToAdd)
+    ).to.be.revertedWith("addEmail: email already exists");
+  });
+  
+  it("Should ensure email is marked as verified after successful verification", async function () {
+    const usernamePlain = "verifystatususer";
+    const emailToAdd = "verifystatus@example.com";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Add email
+    const addEmailTx = await WA.addEmail(userData.hashedUsername, emailToAdd);
+    await addEmailTx.wait();
+  
+    // Verify email
+    const message = ethers.utils.keccak256(
+      ethers.utils.toUtf8Bytes(
+        "verify-email" +
+          ethers.utils.hexlify(userData.hashedUsername) +
+          emailToAdd
+      )
+    );
+    const signature = await signer.signMessage(ethers.utils.arrayify(message));
+  
+    const verifyEmailTx = await WA.verifyEmail(
+      userData.hashedUsername,
+      emailToAdd,
+      signature
+    );
+    await verifyEmailTx.wait();
+  
+    // Check verification status
+    const userAfterVerifyEmail = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterVerifyEmail.emailCredential.verified).to.equal(true);
+  });
+  
+  it("Should ensure social recovery is marked as verified after successful verification", async function () {
+    const usernamePlain = "verifysocialstatususer";
+    const platform = "instagram";
+    const socialId = "instagramUniqueId678";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Add social recovery
+    const addSocialTx = await WA.addSocial(
+      userData.hashedUsername,
+      platform,
+      socialId
+    );
+    await addSocialTx.wait();
+  
+    // Verify social recovery
+    const message = ethers.utils.keccak256(
+      ethers.utils.toUtf8Bytes(
+        "verify-social" +
+          ethers.utils.hexlify(userData.hashedUsername) +
+          platform +
+          socialId
+      )
+    );
+    const signature = await signer.signMessage(ethers.utils.arrayify(message));
+  
+    const verifySocialTx = await WA.verifySocial(
+      userData.hashedUsername,
+      platform,
+      socialId,
+      signature
+    );
+    await verifySocialTx.wait();
+  
+    // Check verification status
+    const userAfterVerifySocial = await WA.getAccount(
+      ethers.utils.hexlify(userData.hashedUsername)
+    );
+    expect(userAfterVerifySocial.socialCredentials[0].verified).to.equal(true);
+  });
+
+  it("Should prevent removing a non-existent email", async function () {
+    const usernamePlain = "nonexistentemailuser";
+    const emailToRemove = "nonexistent@example.com";
+
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+
+    // Attempt to remove a non-existent email
+    await expect(WA.removeEmail(userData.hashedUsername)).to.be.revertedWith(
+      "removeEmail: email does not exist"
+    );
+  });
+
+  it("Should prevent removing a non-existent social recovery method", async function () {
+    const usernamePlain = "nonexistentsocialuser";
+    const platform = "reddit";
+    const socialId = "reddit_unique_id_123";
+  
+    // Create user
+    const userData = await createAccount(usernamePlain, SIMPLE_PASSWORD);
+  
+    // Attempt to remove a non-existent social recovery method
+    await expect(
+      WA.removeSocial(userData.hashedUsername, platform, socialId)
+    ).to.be.revertedWith("removeSocial: social credential not found");
+  });
+  
+  it("Sign random string with new account", async function () {
+    const username = hashedUsername("testuser");
+    const accountData = await createAccount("testuser", SIMPLE_PASSWORD);
+  
+    expect(await WA.userExists(username)).to.equal(true);
+  
+    const iface = new ethers.utils.Interface(ACCOUNT_ABI);
+    const in_data = iface.encodeFunctionData("sign", [RANDOM_STRING]);
+  
+    const in_digest = ethers.utils.solidityPackedKeccak256(
+      ["bytes32", "bytes"],
+      [SIMPLE_PASSWORD, in_data]
+    );
+  
+    const resp = await WA.proxyViewPassword(username, in_digest, in_data);
+  
+    const [sigRes] = iface.decodeFunctionResult("sign", resp);
+  
+    const recoveredAddress = ethers.utils.recoverAddress(RANDOM_STRING, {
+      r: sigRes.r,
+      s: sigRes.s,
+      v: sigRes.v,
+    });
+    expect(recoveredAddress).to.equal(accountData.publicKey);
   });
 
   function hashedUsername (username) {
