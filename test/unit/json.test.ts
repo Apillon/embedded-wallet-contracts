@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { TestMakeJSON } from "../typechain-types";
+import { TestMakeJSON } from "../../typechain-types";
 import { expect } from "chai";
 
 type SimpleObject = { [id: string]: string | boolean };

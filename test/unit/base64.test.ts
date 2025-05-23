@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { randomBytes } from "crypto";
-import { TestBase64 } from "../typechain-types";
+import { TestBase64 } from "../../typechain-types";
 import { expect } from "chai";
 
 describe('Base64', () => {

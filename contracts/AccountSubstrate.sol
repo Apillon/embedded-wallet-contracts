@@ -22,7 +22,7 @@ contract AccountSubstrate is Account {
     {
         bytes memory seed = abi.encodePacked(walletSecret[wallets[walletId]]);
 
-        (bytes memory pk, bytes memory sk) = Sapphire.generateSigningKeyPair(
+        (, bytes memory sk) = Sapphire.generateSigningKeyPair(
             Sapphire.SigningAlg.Sr25519,
             seed
         );
@@ -32,14 +32,6 @@ contract AccountSubstrate is Account {
             sk,
             "substrate", // context or hash,
             data // data
-        );
-
-        Sapphire.verify(
-            Sapphire.SigningAlg.Sr25519, 
-            pk, 
-            "substrate", // context or hash,
-            data, // data
-            signature
         );
 
         return signature;

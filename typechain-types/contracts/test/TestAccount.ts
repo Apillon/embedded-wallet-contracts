@@ -27,7 +27,10 @@ export interface TestAccountInterface extends Interface {
 
   getEvent(nameOrSignatureOrTopic: "CloneCreated"): EventFragment;
 
-  encodeFunctionData(functionFragment: "testClone", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "testClone",
+    values: [AddressLike]
+  ): string;
 
   decodeFunctionResult(functionFragment: "testClone", data: BytesLike): Result;
 }
@@ -87,7 +90,11 @@ export interface TestAccount extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  testClone: TypedContractMethod<[], [void], "nonpayable">;
+  testClone: TypedContractMethod<
+    [controller: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -95,7 +102,7 @@ export interface TestAccount extends BaseContract {
 
   getFunction(
     nameOrSignature: "testClone"
-  ): TypedContractMethod<[], [void], "nonpayable">;
+  ): TypedContractMethod<[controller: AddressLike], [void], "nonpayable">;
 
   getEvent(
     key: "CloneCreated"

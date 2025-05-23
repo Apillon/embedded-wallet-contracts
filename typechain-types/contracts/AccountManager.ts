@@ -148,6 +148,8 @@ export interface AccountManagerInterface extends Interface {
       | "initialize"
       | "manageCredential"
       | "manageCredentialPassword"
+      | "modifyController"
+      | "modifyControllerPassword"
       | "personalization"
       | "proxiableUUID"
       | "proxyView"
@@ -248,6 +250,14 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "manageCredentialPassword",
+    values: [ActionPassStruct]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "modifyController",
+    values: [ActionCredStruct]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "modifyControllerPassword",
     values: [ActionPassStruct]
   ): string;
   encodeFunctionData(
@@ -353,6 +363,14 @@ export interface AccountManagerInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "manageCredentialPassword",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "modifyController",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "modifyControllerPassword",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -631,6 +649,18 @@ export interface AccountManager extends BaseContract {
     "nonpayable"
   >;
 
+  modifyController: TypedContractMethod<
+    [args: ActionCredStruct],
+    [void],
+    "nonpayable"
+  >;
+
+  modifyControllerPassword: TypedContractMethod<
+    [args: ActionPassStruct],
+    [void],
+    "nonpayable"
+  >;
+
   personalization: TypedContractMethod<[], [string], "view">;
 
   proxiableUUID: TypedContractMethod<[], [string], "view">;
@@ -801,6 +831,12 @@ export interface AccountManager extends BaseContract {
   ): TypedContractMethod<[args: ActionCredStruct], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "manageCredentialPassword"
+  ): TypedContractMethod<[args: ActionPassStruct], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "modifyController"
+  ): TypedContractMethod<[args: ActionCredStruct], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "modifyControllerPassword"
   ): TypedContractMethod<[args: ActionPassStruct], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "personalization"

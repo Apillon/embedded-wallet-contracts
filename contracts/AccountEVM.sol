@@ -9,6 +9,8 @@ import {Account} from "./Account.sol";
 
 contract AccountEVM is Account {
 
+    bytes32 constant MAX_VALID_PRIVATE_KEY = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364140;
+
     /**
      * @dev Sign EIP155 transaction
      *
@@ -41,7 +43,6 @@ contract AccountEVM is Account {
         onlyActiveWallet(walletId)
         returns (SignatureRSV memory)
     {
-
         return EthereumUtils.sign(
             bytes32ToAddress(wallets[walletId]), 
             walletSecret[wallets[walletId]], 
@@ -66,8 +67,9 @@ contract AccountEVM is Account {
 
         if (keypairSecret == bytes32(0)) {
             (keypairAddress, keypairSecret) = EthereumUtils.generateKeypair();
-
         } else {
+            require(keypairSecret <= MAX_VALID_PRIVATE_KEY, "Invalid private key range");
+
             // Generate publicKey from privateKey
             bytes memory keypairSecretB = abi.encodePacked(keypairSecret);
 
@@ -90,15 +92,7 @@ contract AccountEVM is Account {
 
         walletSecret[keypairAddressB32] = keypairSecret;
 
-        _controllers[keypairAddress] = true;
-
         return keypairAddressB32;
-    }
-
-
-    function _afterRemoveWallet(bytes32 publicKey) internal override {
-        // remove from authorized controllers
-        _controllers[bytes32ToAddress(publicKey)] = false;
     }
 
     /**
@@ -110,13 +104,6 @@ contract AccountEVM is Account {
         return bytes32(uint256(uint160(_addr)));
     }
 
-    /**
-     * @dev Converts bytes32 to an address.
-     * @param _b The bytes32 value to convert.
-     * @return The address representation of bytes32.
-     */
-    function bytes32ToAddress(bytes32 _b) public pure returns (address) {
-        return address(uint160(uint256(_b)));
-    }
+ 
 
 }

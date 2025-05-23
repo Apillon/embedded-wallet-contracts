@@ -2,20 +2,24 @@
 
 pragma solidity ^0.8.0;
 
-import {AccountEVM} from "../AccountEVM.sol";
-import {AccountFactory,WalletType} from "../AccountFactory.sol";
+import {WalletType} from "../AccountFactory.sol";
+
+import {IAccountFactory} from "../interfaces/IAccountFactory.sol";
+import {IAccount} from "../interfaces/IAccount.sol";
 
 contract TestAccount {
-    AccountFactory private factory;
+    IAccountFactory private factory;
     event CloneCreated(address addr);
-    constructor () {
-        factory = new AccountFactory();
+    
+    constructor(address _factory) {
+        factory = IAccountFactory(_factory);
     }
-    function testClone()
+    
+    function testClone(address controller)
         public
     {
-        AccountEVM acct = AccountEVM(
-            factory.clone(msg.sender, WalletType.EVM, bytes32(0))
+        IAccount acct = IAccount(
+            factory.clone(controller, WalletType.EVM, bytes32(0))
         );
         emit CloneCreated(address(acct));
     }

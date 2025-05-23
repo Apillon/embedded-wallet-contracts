@@ -9,7 +9,9 @@ enum TxType {
     AddWallet,
     AddWalletPassword,
     RemoveWallet,
-    RemoveWalletPassword
+    RemoveWalletPassword,
+    ModifyController,
+    ModifyControllerPassword
 }
 
 enum CredentialAction {

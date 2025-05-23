@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { TestP256R1 } from "../typechain-types";
+import { TestP256R1 } from "../../typechain-types";
 import { ethers } from "hardhat"
 import { ec } from "elliptic";
 import { getRandomValues } from 'crypto';

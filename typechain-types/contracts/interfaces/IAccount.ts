@@ -8,6 +8,7 @@ import type {
   FunctionFragment,
   Result,
   Interface,
+  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -22,12 +23,16 @@ import type {
 
 export interface IAccountInterface extends Interface {
   getFunction(
-    nameOrSignature: "createWallet" | "removeWallet"
+    nameOrSignature: "createWallet" | "modifyController" | "removeWallet"
   ): FunctionFragment;
 
   encodeFunctionData(
     functionFragment: "createWallet",
     values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "modifyController",
+    values: [AddressLike, boolean, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "removeWallet",
@@ -36,6 +41,10 @@ export interface IAccountInterface extends Interface {
 
   decodeFunctionResult(
     functionFragment: "createWallet",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "modifyController",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -93,6 +102,12 @@ export interface IAccount extends BaseContract {
     "nonpayable"
   >;
 
+  modifyController: TypedContractMethod<
+    [who: AddressLike, status: boolean, deadline: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   removeWallet: TypedContractMethod<
     [walletId: BigNumberish],
     [void],
@@ -106,6 +121,13 @@ export interface IAccount extends BaseContract {
   getFunction(
     nameOrSignature: "createWallet"
   ): TypedContractMethod<[keypairSecret: BytesLike], [string], "nonpayable">;
+  getFunction(
+    nameOrSignature: "modifyController"
+  ): TypedContractMethod<
+    [who: AddressLike, status: boolean, deadline: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "removeWallet"
   ): TypedContractMethod<[walletId: BigNumberish], [void], "nonpayable">;

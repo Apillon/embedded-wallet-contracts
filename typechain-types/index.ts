@@ -24,6 +24,12 @@ export type { IAccessControl } from "./@openzeppelin/contracts/access/IAccessCon
 export { IAccessControl__factory } from "./factories/@openzeppelin/contracts/access/IAccessControl__factory";
 export type { IERC1822Proxiable } from "./@openzeppelin/contracts/interfaces/draft-IERC1822.sol/IERC1822Proxiable";
 export { IERC1822Proxiable__factory } from "./factories/@openzeppelin/contracts/interfaces/draft-IERC1822.sol/IERC1822Proxiable__factory";
+export type { IERC1155Errors } from "./@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC1155Errors";
+export { IERC1155Errors__factory } from "./factories/@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC1155Errors__factory";
+export type { IERC20Errors } from "./@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC20Errors";
+export { IERC20Errors__factory } from "./factories/@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC20Errors__factory";
+export type { IERC721Errors } from "./@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC721Errors";
+export { IERC721Errors__factory } from "./factories/@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC721Errors__factory";
 export type { IERC1967 } from "./@openzeppelin/contracts/interfaces/IERC1967";
 export { IERC1967__factory } from "./factories/@openzeppelin/contracts/interfaces/IERC1967__factory";
 export type { IBeacon } from "./@openzeppelin/contracts/proxy/beacon/IBeacon";
@@ -34,6 +40,12 @@ export type { ERC1967Utils } from "./@openzeppelin/contracts/proxy/ERC1967/ERC19
 export { ERC1967Utils__factory } from "./factories/@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils__factory";
 export type { Proxy } from "./@openzeppelin/contracts/proxy/Proxy";
 export { Proxy__factory } from "./factories/@openzeppelin/contracts/proxy/Proxy__factory";
+export type { ERC20 } from "./@openzeppelin/contracts/token/ERC20/ERC20";
+export { ERC20__factory } from "./factories/@openzeppelin/contracts/token/ERC20/ERC20__factory";
+export type { IERC20Metadata } from "./@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata";
+export { IERC20Metadata__factory } from "./factories/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata__factory";
+export type { IERC20 } from "./@openzeppelin/contracts/token/ERC20/IERC20";
+export { IERC20__factory } from "./factories/@openzeppelin/contracts/token/ERC20/IERC20__factory";
 export type { Address } from "./@openzeppelin/contracts/utils/Address";
 export { Address__factory } from "./factories/@openzeppelin/contracts/utils/Address__factory";
 export type { ECDSA } from "./@openzeppelin/contracts/utils/cryptography/ECDSA";

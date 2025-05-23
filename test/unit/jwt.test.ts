@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { TestJWT } from "../typechain-types";
+import { TestJWT } from "../../typechain-types";
 
 describe('JWT', () => {
     let contract : TestJWT;

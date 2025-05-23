@@ -31,6 +31,29 @@ const _abi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "who",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "status",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+    ],
+    name: "modifyController",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "walletId",
         type: "uint256",

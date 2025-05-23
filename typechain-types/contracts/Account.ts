@@ -26,6 +26,7 @@ import type {
 export interface AccountInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "bytes32ToAddress"
       | "call"
       | "createWallet"
       | "exportPrivateKey"
@@ -42,8 +43,12 @@ export interface AccountInterface extends Interface {
   getEvent(nameOrSignatureOrTopic: "WalletCreated"): EventFragment;
 
   encodeFunctionData(
+    functionFragment: "bytes32ToAddress",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "call",
-    values: [AddressLike, BytesLike]
+    values: [AddressLike, BytesLike, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "createWallet",
@@ -51,7 +56,7 @@ export interface AccountInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "exportPrivateKey",
-    values: [BigNumberish]
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getWalletList",
@@ -67,7 +72,7 @@ export interface AccountInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "modifyController",
-    values: [AddressLike, boolean]
+    values: [AddressLike, boolean, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "removeWallet",
@@ -75,17 +80,21 @@ export interface AccountInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "staticcall",
-    values: [AddressLike, BytesLike]
+    values: [AddressLike, BytesLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "transfer",
-    values: [AddressLike, BigNumberish]
+    values: [AddressLike, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "walletAddress",
     values: [BigNumberish]
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "bytes32ToAddress",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "call", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "createWallet",
@@ -175,8 +184,15 @@ export interface Account extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  bytes32ToAddress: TypedContractMethod<[_b: BytesLike], [string], "view">;
+
   call: TypedContractMethod<
-    [in_contract: AddressLike, in_data: BytesLike],
+    [
+      in_contract: AddressLike,
+      in_data: BytesLike,
+      value: BigNumberish,
+      walletId: BigNumberish
+    ],
     [string],
     "nonpayable"
   >;
@@ -188,7 +204,7 @@ export interface Account extends BaseContract {
   >;
 
   exportPrivateKey: TypedContractMethod<
-    [walletId: BigNumberish],
+    [walletId: BigNumberish, deadline: BigNumberish],
     [string],
     "view"
   >;
@@ -204,7 +220,7 @@ export interface Account extends BaseContract {
   isController: TypedContractMethod<[who: AddressLike], [boolean], "view">;
 
   modifyController: TypedContractMethod<
-    [who: AddressLike, status: boolean],
+    [who: AddressLike, status: boolean, deadline: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -216,13 +232,13 @@ export interface Account extends BaseContract {
   >;
 
   staticcall: TypedContractMethod<
-    [in_contract: AddressLike, in_data: BytesLike],
+    [in_contract: AddressLike, in_data: BytesLike, walletId: BigNumberish],
     [string],
     "view"
   >;
 
   transfer: TypedContractMethod<
-    [in_target: AddressLike, amount: BigNumberish],
+    [in_target: AddressLike, amount: BigNumberish, walletId: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -238,9 +254,17 @@ export interface Account extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "bytes32ToAddress"
+  ): TypedContractMethod<[_b: BytesLike], [string], "view">;
+  getFunction(
     nameOrSignature: "call"
   ): TypedContractMethod<
-    [in_contract: AddressLike, in_data: BytesLike],
+    [
+      in_contract: AddressLike,
+      in_data: BytesLike,
+      value: BigNumberish,
+      walletId: BigNumberish
+    ],
     [string],
     "nonpayable"
   >;
@@ -249,7 +273,11 @@ export interface Account extends BaseContract {
   ): TypedContractMethod<[keypairSecret: BytesLike], [string], "nonpayable">;
   getFunction(
     nameOrSignature: "exportPrivateKey"
-  ): TypedContractMethod<[walletId: BigNumberish], [string], "view">;
+  ): TypedContractMethod<
+    [walletId: BigNumberish, deadline: BigNumberish],
+    [string],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "getWalletList"
   ): TypedContractMethod<[], [string[]], "view">;
@@ -266,7 +294,7 @@ export interface Account extends BaseContract {
   getFunction(
     nameOrSignature: "modifyController"
   ): TypedContractMethod<
-    [who: AddressLike, status: boolean],
+    [who: AddressLike, status: boolean, deadline: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -276,14 +304,14 @@ export interface Account extends BaseContract {
   getFunction(
     nameOrSignature: "staticcall"
   ): TypedContractMethod<
-    [in_contract: AddressLike, in_data: BytesLike],
+    [in_contract: AddressLike, in_data: BytesLike, walletId: BigNumberish],
     [string],
     "view"
   >;
   getFunction(
     nameOrSignature: "transfer"
   ): TypedContractMethod<
-    [in_target: AddressLike, amount: BigNumberish],
+    [in_target: AddressLike, amount: BigNumberish, walletId: BigNumberish],
     [void],
     "nonpayable"
   >;

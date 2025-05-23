@@ -11,7 +11,7 @@ check `EW-diagram.pdf`
 
 ## Flow examples
 
-### Create account
+### Create accounts
 AccountManager.sol > AccountFactory.sol > (AccountEVM.sol or AccountSubstrate.sol)
 
 ### getWalletList, Sign message, Add/Remove wallet, Export privateKey, Sign transaction
@@ -27,7 +27,24 @@ Create `secrets.json` file in root folder and insert private keys used to deploy
 
 ### Test
 
+For normal tests run.
+
 Run `npm test`.
+
+For tests regarding sapphire (e2e) functions make sure to run tests in you sapphire localnet.
+
+First run the localnet:
+
+```sh
+docker run -it -p8545:8545 -p8546:8546 ghcr.io/oasisprotocol/sapphire-localnet
+```
+
+Then run the tests
+
+```sh
+npx hardhat test ./pathtotest —-network sapphireLocalnet
+```
+
 
 ### Build
 
