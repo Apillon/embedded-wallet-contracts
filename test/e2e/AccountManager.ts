@@ -84,6 +84,55 @@ describe("AccountManager", function() {
     SALT = ethers.toBeArray(await WA.salt());
   });
 
+  it("Export gasless private key", async function() {
+
+    const deadline = Math.ceil(new Date().getTime() / 1000) + 600; // 10 minutes from now
+
+    const dataHash = ethers.solidityPackedKeccak256(
+      ['string', 'uint256'],
+      ["exportGasslessPrivateKey", deadline],
+    );
+    
+    const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
+    const gaslessPrivateKey = await WA.exportGasslessPrivateKey(deadline, signature);
+    expect(gaslessPrivateKey.length).to.equal(66);
+  });
+
+  it("Can't export gasless private with expired deadline", async function() {
+
+    const deadline = Math.ceil(new Date().getTime() / 1000) - 600; // 10 minutes ago
+
+    const dataHash = ethers.solidityPackedKeccak256(
+      ['string', 'uint256'],
+      ["exportGasslessPrivateKey", deadline],
+    );
+    
+    const signature = await signer.signMessage(ethers.getBytes(dataHash));
+
+    try {
+      await WA.exportGasslessPrivateKey(deadline, signature);
+    } catch(e: any) {
+      expect(e.toString()).to.have.string("execution reverted: Expired signature");
+    }
+  });
+
+  it("Can't export gasless private key with invalid signature", async function() {
+    const deadline = Math.ceil(new Date().getTime() / 1000) + 600; // 10 minutes from now
+
+    const dataHash = ethers.solidityPackedKeccak256(
+      ['string', 'uint256'],
+      ["exportGasslessPrivateKey", deadline],
+    );
+    const signature = await owner.signMessage(ethers.getBytes(dataHash));
+
+    try {
+      await WA.exportGasslessPrivateKey(deadline, signature);
+    } catch(e: any) {
+      expect(e.toString()).to.have.string("execution reverted: Invalid signature");
+    }
+  });
+
   it.skip("Test gas used when creating accounts with different password lengths", async function() {
     const username1 = hashedUsername(SALT, "testuser1");
     const username2 = hashedUsername(SALT, "testuser2");

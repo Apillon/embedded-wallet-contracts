@@ -13,6 +13,7 @@ async function main() {
   // console.log(`DEFAULT_ADMIN_ROLE: ${DEFAULT_ADMIN_ROLE}`);
 
   // const tx = await contract.revokeRole(DEFAULT_ADMIN_ROLE, signer.address);
+  // const tx = await contract.grantRole(DEFAULT_ADMIN_ROLE, signer.address);
   // await tx.wait();
 }
 

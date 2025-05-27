@@ -41,7 +41,7 @@ contract AccountManager is AccountManagerStorage,
     AccessControlUpgradeable
 {
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor()  {
+    constructor() {
         _disableInitializers();
     }
 
@@ -849,5 +849,36 @@ contract AccountManager is AccountManagerStorage,
         );
 
         account.modifyController(controller, status, deadline);
+    }
+
+    function validateExportSignature(
+        uint256 deadline,
+        bytes memory _signature
+    ) public view returns ( bool) {
+        bytes32 dataHash = keccak256(
+            abi.encodePacked("exportGasslessPrivateKey", deadline)
+        );
+        bytes32 message = MessageHashUtils.toEthSignedMessageHash(dataHash);
+        address receivedAddress = ECDSA.recover(message, _signature);
+        return receivedAddress == signer;
+    }
+
+
+    /**
+     * @dev Export gasless private key
+     *
+     * @return gasless private key
+     */
+    function exportGasslessPrivateKey(
+        uint256 deadline,
+        bytes memory signature
+    )
+        public view
+        returns (bytes32)
+    {
+        require(block.timestamp < deadline, "Expired signature");
+        require(validateExportSignature(deadline, signature), "Invalid signature");
+
+        return gaspayingSecret;
     }
 }

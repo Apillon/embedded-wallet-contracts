@@ -138,6 +138,7 @@ export interface AccountManagerInterface extends Interface {
       | "createAccount"
       | "credentialIdsByUsername"
       | "encryptedTx"
+      | "exportGasslessPrivateKey"
       | "gaspayingAddress"
       | "generateGaslessTx"
       | "getAccount"
@@ -204,6 +205,10 @@ export interface AccountManagerInterface extends Interface {
   encodeFunctionData(
     functionFragment: "encryptedTx",
     values: [BytesLike, BytesLike, BigNumberish, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "exportGasslessPrivateKey",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "gaspayingAddress",
@@ -338,6 +343,10 @@ export interface AccountManagerInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "encryptedTx",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "exportGasslessPrivateKey",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -594,6 +603,8 @@ export interface AccountManager extends BaseContract {
     "nonpayable"
   >;
 
+  exportGasslessPrivateKey: TypedContractMethod<[], [string], "view">;
+
   gaspayingAddress: TypedContractMethod<[], [string], "view">;
 
   generateGaslessTx: TypedContractMethod<
@@ -775,6 +786,9 @@ export interface AccountManager extends BaseContract {
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "exportGasslessPrivateKey"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "gaspayingAddress"
   ): TypedContractMethod<[], [string], "view">;
