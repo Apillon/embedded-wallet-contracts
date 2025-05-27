@@ -165,6 +165,7 @@ export interface AccountManagerInterface extends Interface {
       | "supportsInterface"
       | "upgradeToAndCall"
       | "userExists"
+      | "validateExportSignature"
       | "validateSignature"
   ): FunctionFragment;
 
@@ -208,7 +209,7 @@ export interface AccountManagerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "exportGasslessPrivateKey",
-    values?: undefined
+    values: [BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "gaspayingAddress",
@@ -316,6 +317,10 @@ export interface AccountManagerInterface extends Interface {
     values: [BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "validateExportSignature",
+    values: [BigNumberish, BytesLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "validateSignature",
     values: [BigNumberish, BigNumberish, BigNumberish, BytesLike, BytesLike]
   ): string;
@@ -420,6 +425,10 @@ export interface AccountManagerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "userExists", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "validateExportSignature",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "validateSignature",
     data: BytesLike
@@ -603,7 +612,11 @@ export interface AccountManager extends BaseContract {
     "nonpayable"
   >;
 
-  exportGasslessPrivateKey: TypedContractMethod<[], [string], "view">;
+  exportGasslessPrivateKey: TypedContractMethod<
+    [deadline: BigNumberish, signature: BytesLike],
+    [string],
+    "view"
+  >;
 
   gaspayingAddress: TypedContractMethod<[], [string], "view">;
 
@@ -740,6 +753,12 @@ export interface AccountManager extends BaseContract {
 
   userExists: TypedContractMethod<[in_username: BytesLike], [boolean], "view">;
 
+  validateExportSignature: TypedContractMethod<
+    [deadline: BigNumberish, _signature: BytesLike],
+    [boolean],
+    "view"
+  >;
+
   validateSignature: TypedContractMethod<
     [
       _gasPrice: BigNumberish,
@@ -788,7 +807,11 @@ export interface AccountManager extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "exportGasslessPrivateKey"
-  ): TypedContractMethod<[], [string], "view">;
+  ): TypedContractMethod<
+    [deadline: BigNumberish, signature: BytesLike],
+    [string],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "gaspayingAddress"
   ): TypedContractMethod<[], [string], "view">;
@@ -924,6 +947,13 @@ export interface AccountManager extends BaseContract {
   getFunction(
     nameOrSignature: "userExists"
   ): TypedContractMethod<[in_username: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "validateExportSignature"
+  ): TypedContractMethod<
+    [deadline: BigNumberish, _signature: BytesLike],
+    [boolean],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "validateSignature"
   ): TypedContractMethod<
